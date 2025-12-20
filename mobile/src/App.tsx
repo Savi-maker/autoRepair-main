@@ -17,6 +17,7 @@ import AiHelper from './screens/AiHelper/AiHelper'
 import Messages from './screens/Messages/Messages'
 import RegisterScreen from './screens/Auth/RegisterScreen'
 import ResetPasswordScreen from './screens/Auth/ResetPasswordScreen'
+import VehicleInteractive from './screens/Interaktywne/VehicleInteractive'
 
 function App() {
   return (
@@ -57,6 +58,7 @@ function App() {
         <Route path="/faktury" element={<Faktury />} />
         <Route path="/ai" element={<AiHelper />} />
         <Route path="/wiadomosci" element={<Messages />} />
+        <Route path="/pojazdy-interaktywne" element={<VehicleInteractive />} />
       </Routes>
     </BrowserRouter>
   )

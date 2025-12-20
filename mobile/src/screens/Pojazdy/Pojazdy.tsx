@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './Pojazdy.css'
 
 import {
@@ -11,6 +12,7 @@ import {
 } from '../../utils/api'
 
 export default function Pojazdy() {
+  const navigate = useNavigate()
   const [q, setQ] = useState('')
 
   const [loading, setLoading] = useState(true)
@@ -208,6 +210,10 @@ export default function Pojazdy() {
     setOpenDetails(true)
   }
 
+  const goInteractive = (v: VehicleType) => {
+    navigate(`/pojazdy-interaktywne/${v.id}`)
+  }
+
   return (
     <div className="pojazdy-container">
       <div className="pojazdy-header">
@@ -251,6 +257,9 @@ export default function Pojazdy() {
                 </button>
                 <button className="btn-secondary" onClick={() => openEditModal(v)}>
                   Edytuj
+                </button>
+                <button className="btn-secondary" onClick={() => goInteractive(v)}>
+                  Interaktywny pojazd
                 </button>
               </div>
             </div>
@@ -650,6 +659,9 @@ export default function Pojazdy() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+                <button className="btn-secondary" onClick={() => goInteractive(selected)}>
+                  Interaktywny pojazd
+                </button>
                 <button className="btn-secondary" onClick={() => openEditModal(selected)}>
                   Edytuj
                 </button>
