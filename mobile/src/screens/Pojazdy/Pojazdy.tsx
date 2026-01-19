@@ -1,5 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { Suspense, useEffect, useMemo, useState } from 'react'
 import './Pojazdy.css'
+import { Canvas } from '@react-three/fiber'
+import { OrbitControls, Stage, ContactShadows, Environment } from '@react-three/drei'
+import CyberpunkCar from '../../components/models/cyberpunkCar'
 
 import {
   getVehicles,
@@ -567,6 +570,27 @@ export default function Pojazdy() {
           </div>
         </div>
       )}
+
+      <section className="model-panel">
+        <div className="model-canvas">
+          <Canvas shadows style={{ width: '100%', height: '100%' }} camera={{ position: [0, 1.2, 1.8], fov: 38 }}>
+            <ambientLight intensity={0.45} />
+            <hemisphereLight args={['#ffffff', '#222', 0.85]} />
+            <directionalLight position={[5, 12, 8]} intensity={1.2} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-camera-near={0.5} shadow-camera-far={100} />
+
+            <OrbitControls enablePan enableZoom enableRotate autoRotate autoRotateSpeed={0.3} />
+
+            <Suspense fallback={<mesh /> }>
+              <Environment preset="studio" background={false} />
+              <Stage adjustCamera={true} intensity={1.25} shadows={true}>
+                <CyberpunkCar position={[0, -0.6, 0]} rotation={[0, Math.PI, 0]} />
+              </Stage>
+
+              <ContactShadows position={[0, -0.9, 0]} opacity={0.8} width={4} height={4} blur={3} far={1.6} />
+            </Suspense>
+          </Canvas>
+        </div>
+      </section>
 
       {openDetails && selected && (
         <div

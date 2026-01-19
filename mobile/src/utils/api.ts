@@ -1,4 +1,4 @@
-export const API_URL = (import.meta as any).env?.VITE_API_URL || "http://localhost:3000/api";
+export const API_URL = (import.meta as any).env?.VITE_API_URL || "/api";
 
 /* =========================
    TYPES
@@ -160,18 +160,27 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<Api
     });
 
     const text = await res.text();
-    const json = text ? JSON.parse(text) : null;
+    let json: any = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch (e) {
+      // response is not valid JSON (e.g. HTML error page); keep text for diagnostics
+      json = null;
+    }
 
     if (!res.ok) {
       return {
         success: false,
-        message: json?.message || json?.error || "Request failed",
+        message: json?.message || json?.error || (text ? text.substring(0, 200) : "Request failed"),
         error: json?.error,
         allowed: json?.allowed,
       };
     }
 
     if (json && typeof json.success === "boolean") return json as ApiResponse<T>;
+
+    // if response was successful but not JSON, return the text as data for debugging
+    if (!json && text) return { success: true, message: "OK", data: (text as unknown) as T };
 
     return { success: true, message: "OK", data: json as T };
   } catch (err: any) {

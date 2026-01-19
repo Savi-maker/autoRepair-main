@@ -2,6 +2,7 @@ import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginScreen from './screens/Auth/LoginScreen'
 import HomeScreen from './screens/Dashboard/HomeScreen'
+import ErrorBoundary from './components/ErrorBoundary'
 import PlaceholderScreen from './screens/PlaceholderScreen'
 import UserProfileScreen from './screens/Profile/UserProfileScreen'
 import Zlecenia from './screens/Zlecenia/Zlecenia'
@@ -26,7 +27,7 @@ function App() {
         <Route path="/login" element={<LoginScreen />} />
         <Route path="/register" element={<RegisterScreen />} />
         <Route path="/reset-password" element={<ResetPasswordScreen />} />
-        <Route path="/home" element={<HomeScreen />} />
+        <Route path="/home" element={<ErrorBoundary><HomeScreen /></ErrorBoundary>} />
         <Route path="/profile" element={<PlaceholderScreen />} />
         <Route path="/edit-profile" element={<PlaceholderScreen />} />
         <Route path="/list" element={<PlaceholderScreen />} />

@@ -48,3 +48,8 @@ declare module '@react-native-picker/picker' {
 }
 
 declare module '*-untyped'
+
+declare module '*.gltf' {
+  const src: string;
+  export default src;
+}
