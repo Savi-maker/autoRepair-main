@@ -1,0 +1,11 @@
+Model Information:
+* title:	V8 Engine
+* source:	https://sketchfab.com/3d-models/v8-engine-7a957b5f9f954fe5b24e685f5e22046f
+* author:	Tahminayeasminmony (https://sketchfab.com/Tahminayeasminmony)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "V8 Engine" (https://sketchfab.com/3d-models/v8-engine-7a957b5f9f954fe5b24e685f5e22046f) by Tahminayeasminmony (https://sketchfab.com/Tahminayeasminmony) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

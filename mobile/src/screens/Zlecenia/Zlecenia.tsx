@@ -1,7 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { Suspense, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import StatusBadge from '../../components/StatusBadge'
 import './Zlecenia.css'
+import { Canvas } from '@react-three/fiber'
+import { OrbitControls, Stage, ContactShadows, Environment } from '@react-three/drei'
+import V8Engine from '../../components/models/v8Engine'
 
 import {
   getOrders,
@@ -60,6 +63,72 @@ export default function Zlecenia() {
   const [selectedOrder, setSelectedOrder] = useState<OrderType | null>(null)
   const [editStatus, setEditStatus] = useState<UiOrderStatus>('oczekujące')
   const [editOpis, setEditOpis] = useState('')
+
+  // Lista prawidłowych części silnika V8 (nazwy węzłów z hierarchii GLTF)
+  const ENGINE_PARTS_MAP: Record<string, string> = {
+    // Głowice
+    "Head_0": 'Głowica silnika',
+    "Heads": 'Głowica silnika',
+    // Kolektory i dolot
+    "Intake.4_1": 'Kolektor dolotowy',
+    "Intake_20": 'Kolektor dolotowy',
+    "Intake.3_27": 'Kolektor dolotowy',
+    "Intake.5_33": 'Filtr powietrza',
+    "Filter": 'Filtr powietrza',
+    "Intake.2_34": 'Przepustnica',
+    "Throttle_body": 'Przepustnica',
+    // Układ olejowy
+    "Oil pan_2": 'Misa olejowa',
+    "Oil pan.3_30": 'Misa olejowa',
+    "Oil pan.4_31": 'Misa olejowa',
+    "Oil pan.2_32": 'Misa olejowa',
+    "Dip stick_5": 'Bagnet oleju',
+    "Dipstick": 'Bagnet oleju',
+    // Blok i osprzęt
+    "Block_3": 'Blok silnika',
+    "Bolts_4": 'Śruby mocujące',
+    "Valve covers.2_6": 'Pokrywa zaworów',
+    "Valve covers_18": 'Pokrywa zaworów',
+    "Valve_covers": 'Pokrywa zaworów',
+    "Distributor_7": 'Rozdzielacz zapłonu',
+    "Transmission_8": 'Skrzynia biegów',
+    "Fuel pump_9": 'Pompa paliwa',
+    "Oil_pump": 'Pompa olejowa', // Dodano pompę olejową
+    "Pulleys_10": 'Koła pasowe',
+    "Belt_11": 'Pasek napędowy',
+    "Alternator.2_12": 'Alternator',
+    "Alternator_13": 'Alternator',
+    // Zapłon
+    "Spark plugs_14": 'Świece zapłonowe',
+    "Spark_plugs": 'Świece zapłonowe',
+    "Distributor.4_15": 'Przewody zapłonowe',
+    "Distributor.3_16": 'Przewody zapłonowe',
+    "Distributor.2_17": 'Przewody zapłonowe',
+    "Ignition_wires": 'Przewody zapłonowe',
+    // Wydech
+    "Headers.3_19": 'Kolektor wydechowy',
+    "Headers_23": 'Kolektor wydechowy',
+    "Headers.2_26": 'Kolektor wydechowy',
+    "Lines_21": 'Przewody paliwowe',
+    "Turbo_22": 'Turbosprężarka',
+    "Turbo.2_24": 'Turbosprężarka',
+    "Turbo.4_28": 'Turbosprężarka',
+    "Turbo.3_29": 'Turbosprężarka',
+    "Exhaust_25": 'Układ wydechowy',
+  };
+
+  const [enginePartsRaw, setEnginePartsRaw] = useState<string[]>([])
+  const [activeLabel, setActiveLabel] = useState<string | null>(null)
+  const uniqueLabels = useMemo(() => {
+    return Array.from(new Set(Object.values(ENGINE_PARTS_MAP))).sort()
+  }, [])
+
+  const getTechnicalParts = (label: string | null): string[] => {
+    if (!label) return []
+    return Object.keys(ENGINE_PARTS_MAP).filter(
+      (key) => ENGINE_PARTS_MAP[key] === label
+    )
+  }
 
   const resetForm = () => {
     setService('')
@@ -506,6 +575,82 @@ export default function Zlecenia() {
           </div>
         </div>
       )}
+
+      <section className="model-panel">
+        <div className="model-sidebar">
+          <div style={{ fontWeight: 700, marginBottom: 12, color: '#ff6600', fontSize: 14 }}>Podzespoły silnika</div>
+          <div className="parts-list">
+            <button
+              className={`part-button ${!activeLabel ? 'active' : ''}`}
+              onClick={() => setActiveLabel(null)}
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                marginBottom: 6,
+                background: !activeLabel ? '#ff6600' : 'rgba(255,102,0,0.1)',
+                color: !activeLabel ? '#000' : '#fff',
+                border: '1px solid rgba(255,102,0,0.2)',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontSize: 12,
+                fontWeight: 600,
+                transition: 'all 0.2s',
+              }}
+            >
+              Pokaż wszystko
+            </button>
+
+            {uniqueLabels.map((label) => (
+              <button
+                key={label}
+                className={`part-button ${activeLabel === label ? 'active' : ''}`}
+                onClick={() => setActiveLabel(prev => prev === label ? null : label)}
+                style={{
+                  width: '100%',
+                  padding: '8px 10px',
+                  marginBottom: 6,
+                  background: activeLabel === label ? '#ff6600' : 'rgba(255,102,0,0.1)',
+                  color: activeLabel === label ? '#000' : '#ddd',
+                  border: '1px solid rgba(255,102,0,0.2)',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                  wordBreak: 'break-word',
+                  textAlign: 'left',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="model-canvas">
+          <Canvas shadows style={{ width: '100%', height: '100%' }} camera={{ position: [0, 1.2, 1.8], fov: 38 }}>
+            <ambientLight intensity={0.25} />
+            <hemisphereLight args={['#ffffff', '#222', 0.45]} />
+            <directionalLight position={[5, 12, 8]} intensity={0.8} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-camera-near={0.5} shadow-camera-far={100} />
+
+            <OrbitControls enablePan enableZoom enableRotate autoRotate autoRotateSpeed={0.3} />
+
+            <Suspense fallback={<mesh />}>
+              <Environment preset="studio" background={false} />
+              <Stage adjustCamera={true} intensity={0.75} shadows={true}>
+                <V8Engine 
+                  position={[0, -0.2, 0]} 
+                  rotation={[Math.PI / 2, 0, 0]}
+                  onPartsLoaded={setEnginePartsRaw}
+                  // Przekazujemy przefiltrowaną listę technicznych ID
+                  highlightedPart={getTechnicalParts(activeLabel)}
+                />
+              </Stage>
+
+              <ContactShadows position={[0, -0.9, 0]} opacity={0.8} width={4} height={4} blur={3} far={1.6} />
+            </Suspense>
+          </Canvas>
+        </div>
+      </section>
 
       {detailsOpen && selectedOrder && (
         <div

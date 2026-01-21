@@ -94,9 +94,46 @@
   cursor: pointer;
 }
 
+.model-panel {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: auto; /* push to bottom of .dashboard-main */
+  padding-top: 40px; /* create vertical separation from panels above */
+  margin-bottom: 36px;
+}
+
+.model-canvas {
+  width: 720px; /* larger preview */
+  height: 420px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0f0f0f 0%, #161616 100%);
+  border: 1px solid rgba(255,102,0,0.08);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.model-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 @media (max-width: 768px) {
   .pojazdy-container { padding: 30px 30px; }
+  .model-canvas {
+    width: 580px;
+    height: 340px;
+  }
 }
 @media (max-width: 480px) {
   .pojazdy-container { padding: 22px 20px; }
+  .model-canvas {
+    width: 360px;
+    height: 240px;
+    margin: 0 auto;
+  }
 }
