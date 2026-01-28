@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import AppButton from '../../components/AppButton/AppButton'
 import './AdminUsers.css'
 import {
   getUsersAdmin,
@@ -40,6 +42,7 @@ function displayName(u: AdminUserType) {
 }
 
 export default function AdminUsers() {
+  const navigate = useNavigate()
   const [q, setQ] = useState('')
   const [role, setRole] = useState<UserRole | 'wszyscy'>('wszyscy')
   const [status, setStatus] = useState<UserStatus | 'wszyscy'>('wszyscy')
@@ -227,6 +230,9 @@ export default function AdminUsers() {
   return (
     <div className="admin-container">
       <div className="admin-header">
+        <AppButton variant="back" onClick={() => navigate(-1)}>
+          ← Wróć
+        </AppButton>
         <h1>Użytkownicy</h1>
         <div className="a-actions">
           <input

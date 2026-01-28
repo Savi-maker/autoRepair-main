@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import {
   listCustomers,
@@ -17,3 +17,4 @@ router.patch("/:id", requireAuth, updateCustomer);
 router.delete("/:id", requireAuth, deleteCustomer);
 
 export default router;
+

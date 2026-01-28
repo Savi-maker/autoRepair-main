@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+﻿import type { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { get, run } from "../db.js";
@@ -11,25 +11,30 @@ type UserRow = {
   telefon: string | null;
   rola: string;
   haslo: string;
+  customer_id?: number;
 };
 
-function signToken(user: { id: number; mail: string; rola: string }) {
+function signToken(user: { id: number; mail: string; rola: string; customer_id?: number }) {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error("Brak JWT_SECRET w .env");
 
-  return jwt.sign({ id: user.id, mail: user.mail, rola: user.rola }, secret, { expiresIn: "7d" });
+  const payload: any = { id: user.id, mail: user.mail, rola: user.rola };
+  if (user.rola === "user" && user.customer_id) {
+    payload.customer_id = user.customer_id;
+  }
+  return jwt.sign(payload, secret, { expiresIn: "7d" });
 }
 
 export async function register(req: Request, res: Response) {
   const { imie, nazwisko, mail, telefon, haslo } = req.body ?? {};
 
   if (!imie || !nazwisko || !mail || !haslo) {
-    return res.status(400).json({ success: false, message: "Brak wymaganych pól: imie, nazwisko, mail, haslo" });
+    return res.status(400).json({ success: false, message: "Brak wymaganych pĂłl: imie, nazwisko, mail, haslo" });
   }
 
   const existing = await get<UserRow>(`SELECT * FROM users WHERE mail = ?`, [mail]);
   if (existing) {
-    return res.status(409).json({ success: false, message: "Użytkownik o takim mailu już istnieje" });
+    return res.status(409).json({ success: false, message: "UĹĽytkownik o takim mailu juĹĽ istnieje" });
   }
 
   const hashed = await bcrypt.hash(String(haslo), 10);
@@ -56,20 +61,20 @@ export async function register(req: Request, res: Response) {
 export async function login(req: Request, res: Response) {
   const { mail, haslo } = req.body ?? {};
   if (!mail || !haslo) {
-    return res.status(400).json({ success: false, message: "Brak pól: mail, haslo" });
+    return res.status(400).json({ success: false, message: "Brak pĂłl: mail, haslo" });
   }
 
   const user = await get<UserRow>(`SELECT * FROM users WHERE mail = ?`, [mail]);
   if (!user) {
-    return res.status(401).json({ success: false, message: "Nieprawidłowy mail lub hasło" });
+    return res.status(401).json({ success: false, message: "NieprawidĹ‚owy mail lub hasĹ‚o" });
   }
 
   const ok = await bcrypt.compare(String(haslo), user.haslo);
   if (!ok) {
-    return res.status(401).json({ success: false, message: "Nieprawidłowy mail lub hasło" });
+    return res.status(401).json({ success: false, message: "NieprawidĹ‚owy mail lub hasĹ‚o" });
   }
 
-  const token = signToken({ id: user.id, mail: user.mail, rola: user.rola });
+  const token = signToken({ id: user.id, mail: user.mail, rola: user.rola, customer_id: user.customer_id });
 
   return res.json({
     success: true,
@@ -84,7 +89,7 @@ export async function login(req: Request, res: Response) {
 export async function resetPassword(req: Request, res: Response) {
   const { mail, imie, nowe_haslo } = req.body ?? {};
   if (!mail || !imie || !nowe_haslo) {
-    return res.status(400).json({ success: false, message: "Brak pól: mail, imie, nowe_haslo" });
+    return res.status(400).json({ success: false, message: "Brak pĂłl: mail, imie, nowe_haslo" });
   }
 
   const user = await get<UserRow>(`SELECT * FROM users WHERE mail = ?`, [mail]);
@@ -97,3 +102,4 @@ export async function resetPassword(req: Request, res: Response) {
 
   return res.json({ success: true, message: "Haslo zmienione" });
 }
+

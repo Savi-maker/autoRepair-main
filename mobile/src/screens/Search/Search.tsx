@@ -1,9 +1,12 @@
 import React, { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import AppButton from '../../components/AppButton/AppButton'
 import './Search.css'
 import { orders, vehicles, customers } from '../../utils/mockData'
 import StatusBadge from '../../components/StatusBadge'
 
 const Search: React.FC = () => {
+  const navigate = useNavigate()
   const [query, setQuery] = useState('')
 
   const results = useMemo(() => {
@@ -20,6 +23,9 @@ const Search: React.FC = () => {
   return (
     <div className="search-container">
       <header className="search-header">
+        <AppButton variant="back" onClick={() => navigate(-1)}>
+          ← Wróć
+        </AppButton>
         <h1>Wyszukiwarka</h1>
       </header>
 

@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import {
   listNotifications,
@@ -24,3 +24,4 @@ router.patch("/read-all", requireAuth, markAllRead);
 router.delete("/:id", requireAuth, deleteNotification);
 
 export default router;
+

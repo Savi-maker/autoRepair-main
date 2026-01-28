@@ -1,4 +1,4 @@
-import type { Response } from "express";
+﻿import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
 import { all, get, run } from "../db.js";
 
@@ -8,20 +8,31 @@ export async function listAppointments(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
-    const rows = await all(
-      `SELECT
-        a.id, a.title, a.start_at, a.end_at, a.status, a.notes, a.created_at,
-        a.customer_id, a.vehicle_id, a.order_id,
-        c.name AS customer_name,
-        v.make AS vehicle_make,
-        v.model AS vehicle_model,
-        v.plate AS vehicle_plate
-      FROM appointments a
-      LEFT JOIN customers c ON c.id = a.customer_id
-      LEFT JOIN vehicles v ON v.id = a.vehicle_id
-      ORDER BY a.start_at ASC`
-    );
+    const isCustomer = req.user.rola === "user";
+    const customerId = req.user.customer_id;
 
+    let query = `SELECT
+      a.id, a.title, a.start_at, a.end_at, a.status, a.notes, a.created_at,
+      a.customer_id, a.vehicle_id, a.order_id,
+      c.name AS customer_name,
+      v.make AS vehicle_make,
+      v.model AS vehicle_model,
+      v.plate AS vehicle_plate
+    FROM appointments a
+    LEFT JOIN customers c ON c.id = a.customer_id
+    LEFT JOIN vehicles v ON v.id = a.vehicle_id`;
+
+    let params: any[] = [];
+
+    // Dla customer - tylko jego wizyty
+    if (isCustomer && customerId) {
+      query += ` WHERE a.customer_id = ?`;
+      params = [customerId];
+    }
+
+    query += ` ORDER BY a.start_at ASC`;
+
+    const rows = await all(query, params);
     return res.json({ success: true, message: "OK", data: rows });
   } catch (e: any) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
@@ -34,7 +45,7 @@ export async function getAppointmentById(req: AuthRequest, res: Response) {
 
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) {
-      return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+      return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
     }
 
     const row = await get(
@@ -69,14 +80,20 @@ export async function createAppointment(req: AuthRequest, res: Response) {
     if (!title || !start_at) {
       return res.status(400).json({
         success: false,
-        message: "Brak pól: title, start_at"
+        message: "Brak pĂłl: title, start_at"
       });
+    }
+
+    // Dla customer - musi tworzyÄ‡ dla siebie
+    const isCustomer = req.user.rola === "user";
+    if (isCustomer && customer_id && customer_id !== req.user.customer_id) {
+      return res.status(403).json({ error: "Nie moĹĽesz tworzyÄ‡ wizyt dla innych klientĂłw" });
     }
 
     if (status != null && !allowedStatuses.has(String(status))) {
       return res.status(400).json({
         success: false,
-        message: "Nieprawidłowy status",
+        message: "NieprawidĹ‚owy status",
         allowed: Array.from(allowedStatuses)
       });
     }
@@ -126,7 +143,7 @@ export async function updateAppointment(req: AuthRequest, res: Response) {
 
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) {
-      return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+      return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
     }
 
     const { title, start_at, end_at, status, notes } = req.body ?? {};
@@ -137,7 +154,7 @@ export async function updateAppointment(req: AuthRequest, res: Response) {
     if (status != null && !allowedStatuses.has(String(status))) {
       return res.status(400).json({
         success: false,
-        message: "Nieprawidłowy status",
+        message: "NieprawidĹ‚owy status",
         allowed: Array.from(allowedStatuses)
       });
     }
@@ -187,7 +204,7 @@ export async function deleteAppointment(req: AuthRequest, res: Response) {
 
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) {
-      return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+      return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
     }
 
     const existing = await get(`SELECT id FROM appointments WHERE id = ?`, [id]);
@@ -200,3 +217,4 @@ export async function deleteAppointment(req: AuthRequest, res: Response) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }
 }
+

@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import AppButton from '../../components/AppButton/AppButton'
 import './Magazyn.css'
 import { getParts, createPart, updatePart, deletePart, type PartType } from '../../utils/api'
 
@@ -8,6 +10,7 @@ function toMoney(v: number) {
 }
 
 export default function Magazyn() {
+  const navigate = useNavigate()
   const [q, setQ] = useState('')
   const [onlyLow, setOnlyLow] = useState(false)
 
@@ -268,6 +271,9 @@ export default function Magazyn() {
   return (
     <div className="magazyn-container">
       <div className="magazyn-header">
+        <AppButton variant="back" onClick={() => navigate(-1)}>
+          ← Wróć
+        </AppButton>
         <h1>Magazyn części</h1>
         <div className="m-actions">
           <input

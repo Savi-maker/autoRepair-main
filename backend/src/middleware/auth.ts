@@ -1,10 +1,11 @@
-import jwt from "jsonwebtoken";
+﻿import jwt from "jsonwebtoken";
 import type { Request, Response, NextFunction } from "express";
 
 export type AuthUser = {
   id: number;
   mail: string;
   rola: string;
+  customer_id?: number;
 };
 
 export type AuthRequest = Request & { user?: AuthUser };
@@ -27,3 +28,4 @@ export function requireAuth(req: AuthRequest, res: Response, next: NextFunction)
     return res.status(401).json({ error: "Niepoprawny token" });
   }
 }
+

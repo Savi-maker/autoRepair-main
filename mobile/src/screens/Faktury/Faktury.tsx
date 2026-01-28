@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import AppButton from '../../components/AppButton/AppButton'
 import './Faktury.css'
 import { API_URL, getCustomers, getInvoices, createInvoice, updateInvoice, type CustomerType, type InvoiceType } from '../../utils/api'
 
@@ -27,6 +29,7 @@ function isoToday() {
 }
 
 export default function Faktury() {
+  const navigate = useNavigate()
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<FilterStatus>('wszystkie')
 
@@ -221,6 +224,9 @@ export default function Faktury() {
   return (
     <div className="faktury-container">
       <div className="faktury-header">
+        <AppButton variant="back" onClick={() => navigate(-1)}>
+          ← Wróć
+        </AppButton>
         <h1>Faktury</h1>
         <div className="f-actions">
           <input

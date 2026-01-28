@@ -1,4 +1,4 @@
-import type { Response } from "express";
+﻿import type { Response } from "express";
 import bcrypt from "bcryptjs";
 import type { AuthRequest } from "../middleware/auth.js";
 import { all, get, run } from "../db.js";
@@ -11,7 +11,7 @@ function isAdmin(req: AuthRequest) {
 export async function listAdminUsers(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
-    if (!isAdmin(req)) return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    if (!isAdmin(req)) return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
 
     const q = String((req.query.q ?? "") as string).trim();
     const rows = q
@@ -37,7 +37,7 @@ export async function listAdminUsers(req: AuthRequest, res: Response) {
 export async function createAdminUser(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
-    if (!isAdmin(req)) return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    if (!isAdmin(req)) return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
 
     const { imie, nazwisko, mail, telefon, rola, haslo } = req.body ?? {};
 
@@ -52,12 +52,12 @@ export async function createAdminUser(req: AuthRequest, res: Response) {
     if (!n) return res.status(400).json({ success: false, message: "Brak pola: nazwisko" });
     if (!m) return res.status(400).json({ success: false, message: "Brak pola: mail" });
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m)) {
-      return res.status(400).json({ success: false, message: "Nieprawidłowy email" });
+      return res.status(400).json({ success: false, message: "NieprawidĹ‚owy email" });
     }
-    if (!p || p.length < 6) return res.status(400).json({ success: false, message: "Hasło musi mieć min. 6 znaków" });
+    if (!p || p.length < 6) return res.status(400).json({ success: false, message: "HasĹ‚o musi mieÄ‡ min. 6 znakĂłw" });
 
     const existing = await get<{ id: number }>(`SELECT id FROM users WHERE mail = ?`, [m]);
-    if (existing) return res.status(409).json({ success: false, message: "Użytkownik z takim mailem już istnieje" });
+    if (existing) return res.status(409).json({ success: false, message: "UĹĽytkownik z takim mailem juĹĽ istnieje" });
 
     const hash = await bcrypt.hash(p, 10);
 
@@ -87,10 +87,10 @@ export async function createAdminUser(req: AuthRequest, res: Response) {
 export async function updateAdminUser(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
-    if (!isAdmin(req)) return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    if (!isAdmin(req)) return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const { status, rola } = req.body ?? {};
     if (status == null && rola == null) {
@@ -135,7 +135,7 @@ export async function updateAdminUser(req: AuthRequest, res: Response) {
 export async function adminResetPassword(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
-    if (!isAdmin(req)) return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    if (!isAdmin(req)) return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
 
     const { mail, imie, nowe_haslo } = req.body ?? {};
     const m = String(mail ?? "").trim().toLowerCase();
@@ -144,20 +144,21 @@ export async function adminResetPassword(req: AuthRequest, res: Response) {
 
     if (!m) return res.status(400).json({ success: false, message: "Brak pola: mail" });
     if (!i) return res.status(400).json({ success: false, message: "Brak pola: imie" });
-    if (!p || p.length < 6) return res.status(400).json({ success: false, message: "Hasło musi mieć min. 6 znaków" });
+    if (!p || p.length < 6) return res.status(400).json({ success: false, message: "HasĹ‚o musi mieÄ‡ min. 6 znakĂłw" });
 
     const user = await get<{ id: number; imie: string }>(`SELECT id, imie FROM users WHERE mail = ?`, [m]);
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
     if (String(user.imie ?? "").trim() !== i) {
-      return res.status(400).json({ success: false, message: "Dane nie pasują" });
+      return res.status(400).json({ success: false, message: "Dane nie pasujÄ…" });
     }
 
     const hash = await bcrypt.hash(p, 10);
     await run(`UPDATE users SET haslo = ? WHERE id = ?`, [hash, user.id]);
 
-    return res.json({ success: true, message: "Hasło zresetowane" });
+    return res.json({ success: true, message: "HasĹ‚o zresetowane" });
   } catch (e: any) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }
 }
+

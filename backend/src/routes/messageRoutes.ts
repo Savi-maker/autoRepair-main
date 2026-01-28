@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import {
   listThreads,
@@ -24,3 +24,4 @@ router.get("/threads/:threadId/messages", requireAuth, listMessages);
 router.post("/threads/:threadId/messages", requireAuth, createMessage);
 
 export default router;
+

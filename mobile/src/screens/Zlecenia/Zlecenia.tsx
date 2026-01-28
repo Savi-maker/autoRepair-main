@@ -1,6 +1,8 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import StatusBadge from '../../components/StatusBadge'
+import AppButton from '../../components/AppButton/AppButton'
+import { useAuth } from '../../utils/useAuth'
 import './Zlecenia.css'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Stage, ContactShadows, Environment } from '@react-three/drei'
@@ -35,6 +37,8 @@ function mapUiToBackendStatus(s: UiOrderStatus) {
 }
 
 export default function Zlecenia() {
+  const navigate = useNavigate()
+  const { hasPermission } = useAuth()
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<FilterStatus>('wszystkie')
 
@@ -317,6 +321,11 @@ export default function Zlecenia() {
   return (
     <div className="zlecenia-container">
       <div className="zlecenia-header">
+        <div className="zlecenia-left">
+          <AppButton variant="back" onClick={() => navigate(-1)}>
+            ← Wróć
+          </AppButton>
+        </div>
         <h1>Zlecenia</h1>
         <div className="zlecenia-actions">
           <input
@@ -332,9 +341,11 @@ export default function Zlecenia() {
             <option value="zakończone">Zakończone</option>
             <option value="anulowane">Anulowane</option>
           </select>
-          <button className="z-btn-primary" onClick={() => setOpen(true)}>
-            Dodaj nowe zlecenie
-          </button>
+          {hasPermission('canManageOrders') && (
+            <AppButton variant="primary" onClick={() => setOpen(true)}>
+              Dodaj nowe zlecenie
+            </AppButton>
+          )}
         </div>
       </div>
 

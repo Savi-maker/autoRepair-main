@@ -42,6 +42,8 @@ input, textarea, select {
 }
 .btn-primary { background:#ff6600; color:#111; border:none; padding:10px 16px; border-radius:12px; font-weight:600; box-shadow:0 0 16px rgba(255,102,0,0.4); cursor:pointer; }
 .btn-secondary { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#eee; padding:8px 12px; border-radius:10px; cursor:pointer; }
+.btn-back { background:transparent !important; border:2px solid #ffffff !important; color:#ffffff !important; padding:8px 12px !important; border-radius:8px !important; cursor:pointer !important; font-size:14px !important; transition:background 0.15s ease, transform 0.12s ease; font-weight:500 !important; }
+.btn-back:hover { background:rgba(255,255,255,0.08) !important; transform:translateY(-1px) !important; }
 .btn-link { color:#ff9a3c; text-decoration:none; margin-left:6px; }
 .cards-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:16px; }
 .card {

@@ -1,4 +1,4 @@
-import type { Response } from "express";
+﻿import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
 import { all, get, run } from "../db.js";
 
@@ -17,45 +17,39 @@ export async function listOrders(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
     const isAdmin = canSeeAll(req);
+    const isCustomer = req.user.rola === "user";
+    const customerId = req.user.customer_id;
 
-    const rows = isAdmin
-      ? await all(
-          `SELECT
-            o.id, o.service, o.status, o.opis,
-            o.customer_id, o.vehicle_id,
-            o.mechanic_user_id, o.created_by_user_id,
-            o.start_at, o.end_at, o.created_at,
-            c.name as customer_name,
-            c.phone as customer_phone,
-            v.make as vehicle_make,
-            v.model as vehicle_model,
-            v.year as vehicle_year,
-            v.plate as vehicle_plate
-          FROM orders o
-          LEFT JOIN customers c ON c.id = o.customer_id
-          LEFT JOIN vehicles v ON v.id = o.vehicle_id
-          ORDER BY o.id DESC`
-        )
-      : await all(
-          `SELECT
-            o.id, o.service, o.status, o.opis,
-            o.customer_id, o.vehicle_id,
-            o.mechanic_user_id, o.created_by_user_id,
-            o.start_at, o.end_at, o.created_at,
-            c.name as customer_name,
-            c.phone as customer_phone,
-            v.make as vehicle_make,
-            v.model as vehicle_model,
-            v.year as vehicle_year,
-            v.plate as vehicle_plate
-          FROM orders o
-          LEFT JOIN customers c ON c.id = o.customer_id
-          LEFT JOIN vehicles v ON v.id = o.vehicle_id
-          WHERE o.created_by_user_id = ?
-          ORDER BY o.id DESC`,
-          [req.user.id]
-        );
+    let query = `SELECT
+      o.id, o.service, o.status, o.opis,
+      o.customer_id, o.vehicle_id,
+      o.mechanic_user_id, o.created_by_user_id,
+      o.start_at, o.end_at, o.created_at,
+      c.name as customer_name,
+      c.phone as customer_phone,
+      v.make as vehicle_make,
+      v.model as vehicle_model,
+      v.year as vehicle_year,
+      v.plate as vehicle_plate
+    FROM orders o
+    LEFT JOIN customers c ON c.id = o.customer_id
+    LEFT JOIN vehicles v ON v.id = o.vehicle_id`;
 
+    let params: any[] = [];
+
+    // Dla customer - tylko jego zlecenia
+    if (isCustomer && customerId) {
+      query += ` WHERE o.customer_id = ?`;
+      params = [customerId];
+    } else if (!isAdmin) {
+      // Dla non-admin non-customer - tylko jego zlecenia (created by)
+      query += ` WHERE o.created_by_user_id = ?`;
+      params = [req.user.id];
+    }
+
+    query += ` ORDER BY o.id DESC`;
+
+    const rows = await all(query, params);
     return res.json({ success: true, message: "OK", data: rows });
   } catch (e: any) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
@@ -67,7 +61,7 @@ export async function getOrderById(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const row = await get<any>(
       `SELECT
@@ -97,7 +91,7 @@ export async function getOrderById(req: AuthRequest, res: Response) {
     const isOwner = row.created_by_user_id === req.user.id;
 
     if (!isAdmin && !isOwner) {
-      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+      return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
     }
 
     return res.json({ success: true, message: "OK", data: row });
@@ -115,7 +109,7 @@ export async function createOrder(req: AuthRequest, res: Response) {
     if (!service || !customer_id || !vehicle_id) {
       return res.status(400).json({
         success: false,
-        message: "Brak pól: service, customer_id, vehicle_id",
+        message: "Brak pĂłl: service, customer_id, vehicle_id",
       });
     }
 
@@ -129,7 +123,7 @@ export async function createOrder(req: AuthRequest, res: Response) {
     );
     if (!vehicle) return res.status(400).json({ success: false, message: "Nie istnieje vehicle_id" });
     if (vehicle.customer_id !== Number(customer_id)) {
-      return res.status(400).json({ success: false, message: "Pojazd nie należy do podanego klienta" });
+      return res.status(400).json({ success: false, message: "Pojazd nie naleĹĽy do podanego klienta" });
     }
 
     if (mechanic_user_id != null) {
@@ -167,7 +161,7 @@ export async function updateOrder(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const { status, opis, mechanic_user_id, start_at, end_at } = req.body ?? {};
 
@@ -178,7 +172,7 @@ export async function updateOrder(req: AuthRequest, res: Response) {
     if (status != null && !allowedStatuses.has(String(status))) {
       return res.status(400).json({
         success: false,
-        message: "Nieprawidłowy status",
+        message: "NieprawidĹ‚owy status",
         allowed: Array.from(allowedStatuses),
       });
     }
@@ -191,7 +185,7 @@ export async function updateOrder(req: AuthRequest, res: Response) {
 
     const isAdmin = canEditAll(req);
     const isOwner = existing.created_by_user_id === req.user.id;
-    if (!isAdmin && !isOwner) return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    if (!isAdmin && !isOwner) return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
 
     if (mechanic_user_id != null) {
       const mech = await get<{ id: number }>(`SELECT id FROM users WHERE id = ?`, [Number(mechanic_user_id)]);
@@ -232,3 +226,4 @@ export async function updateOrder(req: AuthRequest, res: Response) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }
 }
+

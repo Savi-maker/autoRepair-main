@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import {
   listAdminUsers,
@@ -15,3 +15,4 @@ router.patch("/users/:id", requireAuth, updateAdminUser);
 router.post("/users/reset-password", requireAuth, adminResetPassword);
 
 export default router;
+

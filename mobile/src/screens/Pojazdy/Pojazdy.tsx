@@ -1,4 +1,6 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import AppButton from '../../components/AppButton/AppButton'
 import './Pojazdy.css'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Stage, ContactShadows, Environment } from '@react-three/drei'
@@ -14,6 +16,7 @@ import {
 } from '../../utils/api'
 
 export default function Pojazdy() {
+  const navigate = useNavigate()
   const [q, setQ] = useState('')
 
   const [loading, setLoading] = useState(true)
@@ -214,6 +217,11 @@ export default function Pojazdy() {
   return (
     <div className="pojazdy-container">
       <div className="pojazdy-header">
+        <div className="pojazdy-left">
+          <AppButton variant="back" onClick={() => navigate(-1)}>
+            ← Wróć
+          </AppButton>
+        </div>
         <h1>Pojazdy</h1>
         <div className="p-actions">
           <input

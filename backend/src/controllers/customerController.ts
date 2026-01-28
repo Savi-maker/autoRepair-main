@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+﻿import type { Request, Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
 import { all, get, run } from "../db.js";
 
@@ -32,7 +32,7 @@ export async function getCustomerById(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const row = await get(
       `SELECT id, name, email, phone, notes, created_at
@@ -80,7 +80,7 @@ export async function updateCustomer(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const { name, email, phone, notes } = req.body ?? {};
     if (name == null && email == null && phone == null && notes == null) {
@@ -132,7 +132,7 @@ export async function deleteCustomer(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const existing = await get<{ id: number }>(`SELECT id FROM customers WHERE id = ?`, [id]);
     if (!existing) return res.status(404).json({ success: false, message: "Customer not found" });
@@ -144,3 +144,4 @@ export async function deleteCustomer(req: AuthRequest, res: Response) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }
 }
+

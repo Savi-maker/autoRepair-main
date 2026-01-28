@@ -1,4 +1,4 @@
-import type { Response } from "express";
+﻿import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
 import { all, get, run } from "../db.js";
 
@@ -26,7 +26,7 @@ export async function getNotificationById(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const row = await get(
       `SELECT id, user_id, title, body, read_at, created_at
@@ -47,14 +47,14 @@ export async function createNotification(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
-    // tylko admin / serwis może tworzyć dla innych (opcjonalnie)
+    // tylko admin / serwis moĹĽe tworzyÄ‡ dla innych (opcjonalnie)
     if (req.user.rola !== "admin") {
-      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+      return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
     }
 
     const { user_id, title, body } = req.body ?? {};
     if (!user_id || !title) {
-      return res.status(400).json({ success: false, message: "Brak pól: user_id, title" });
+      return res.status(400).json({ success: false, message: "Brak pĂłl: user_id, title" });
     }
 
     const u = await get<{ id: number }>(`SELECT id FROM users WHERE id = ?`, [Number(user_id)]);
@@ -79,7 +79,7 @@ export async function markRead(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const existing = await get<{ id: number }>(
       `SELECT id FROM notifications WHERE id = ? AND user_id = ?`,
@@ -124,7 +124,7 @@ export async function deleteNotification(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const existing = await get<{ id: number }>(
       `SELECT id FROM notifications WHERE id = ? AND user_id = ?`,
@@ -139,3 +139,4 @@ export async function deleteNotification(req: AuthRequest, res: Response) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }
 }
+

@@ -1,4 +1,4 @@
-import type { Response } from "express";
+﻿import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
 import { all, get, run } from "../db.js";
 
@@ -45,7 +45,7 @@ export async function getInvoiceById(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const row = await get(
       `SELECT
@@ -79,14 +79,14 @@ export async function createInvoice(req: AuthRequest, res: Response) {
     if (!number || !customer_id || !issue_date || amount == null) {
       return res.status(400).json({
         success: false,
-        message: "Brak pól: number, customer_id, issue_date, amount"
+        message: "Brak pĂłl: number, customer_id, issue_date, amount"
       });
     }
 
     if (status != null && !allowedStatuses.has(String(status))) {
       return res.status(400).json({
         success: false,
-        message: "Nieprawidłowy status",
+        message: "NieprawidĹ‚owy status",
         allowed: Array.from(allowedStatuses)
       });
     }
@@ -100,7 +100,7 @@ export async function createInvoice(req: AuthRequest, res: Response) {
     }
 
     const existingNum = await get<{ id: number }>(`SELECT id FROM invoices WHERE number = ?`, [String(number)]);
-    if (existingNum) return res.status(409).json({ success: false, message: "Faktura o takim numerze już istnieje" });
+    if (existingNum) return res.status(409).json({ success: false, message: "Faktura o takim numerze juĹĽ istnieje" });
 
     const result = await run(
       `INSERT INTO invoices (number, customer_id, order_id, issue_date, due_date, amount, status, pdf_path)
@@ -123,7 +123,7 @@ export async function createInvoice(req: AuthRequest, res: Response) {
   } catch (e: any) {
     const msg = String(e?.message || "DB error");
     if (msg.includes("UNIQUE constraint failed: invoices.number")) {
-      return res.status(409).json({ success: false, message: "Faktura o takim numerze już istnieje" });
+      return res.status(409).json({ success: false, message: "Faktura o takim numerze juĹĽ istnieje" });
     }
     return res.status(500).json({ success: false, message: msg });
   }
@@ -134,7 +134,7 @@ export async function updateInvoice(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const { number, customer_id, order_id, issue_date, due_date, amount, status, pdf_path } = req.body ?? {};
 
@@ -154,7 +154,7 @@ export async function updateInvoice(req: AuthRequest, res: Response) {
     if (status != null && !allowedStatuses.has(String(status))) {
       return res.status(400).json({
         success: false,
-        message: "Nieprawidłowy status",
+        message: "NieprawidĹ‚owy status",
         allowed: Array.from(allowedStatuses)
       });
     }
@@ -174,7 +174,7 @@ export async function updateInvoice(req: AuthRequest, res: Response) {
 
     if (number != null) {
       const dup = await get<{ id: number }>(`SELECT id FROM invoices WHERE number = ? AND id != ?`, [String(number), id]);
-      if (dup) return res.status(409).json({ success: false, message: "Faktura o takim numerze już istnieje" });
+      if (dup) return res.status(409).json({ success: false, message: "Faktura o takim numerze juĹĽ istnieje" });
     }
 
     const fields: string[] = [];
@@ -223,7 +223,7 @@ export async function updateInvoice(req: AuthRequest, res: Response) {
   } catch (e: any) {
     const msg = String(e?.message || "DB error");
     if (msg.includes("UNIQUE constraint failed: invoices.number")) {
-      return res.status(409).json({ success: false, message: "Faktura o takim numerze już istnieje" });
+      return res.status(409).json({ success: false, message: "Faktura o takim numerze juĹĽ istnieje" });
     }
     return res.status(500).json({ success: false, message: msg });
   }
@@ -234,7 +234,7 @@ export async function deleteInvoice(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const existing = await get<{ id: number }>(`SELECT id FROM invoices WHERE id = ?`, [id]);
     if (!existing) return res.status(404).json({ success: false, message: "Invoice not found" });
@@ -246,3 +246,4 @@ export async function deleteInvoice(req: AuthRequest, res: Response) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }
 }
+

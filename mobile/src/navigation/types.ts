@@ -1,4 +1,4 @@
-export type RootStackParamList = {
+﻿export type RootStackParamList = {
   Home: undefined;
   Login: undefined;
   Register: undefined;
@@ -27,7 +27,7 @@ export type RootStackParamList = {
   UserRaports: undefined;
 };
 
-export type OrderStatus = 'oczekujące' | 'w trakcie' | 'zakończone' | 'anulowane';
+export type OrderStatus = 'oczekujÄ…ce' | 'w trakcie' | 'zakoĹ„czone' | 'anulowane';
 
 export interface Customer {
   id: string;
@@ -65,4 +65,5 @@ export interface Visit {
   customerId?: string;
   status?: OrderStatus;
 }
+
 

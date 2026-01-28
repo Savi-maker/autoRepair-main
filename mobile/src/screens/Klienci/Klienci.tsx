@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import AppButton from '../../components/AppButton/AppButton'
 import './Klienci.css'
 import {
   getCustomers,
@@ -12,6 +14,7 @@ import {
 } from '../../utils/api'
 
 export default function Klienci() {
+  const navigate = useNavigate()
   const [q, setQ] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -182,6 +185,11 @@ export default function Klienci() {
   return (
     <div className="klienci-container">
       <div className="klienci-header">
+        <div className="klienci-left">
+          <AppButton variant="back" onClick={() => navigate(-1)}>
+            ← Wróć
+          </AppButton>
+        </div>
         <h1>Klienci</h1>
         <div className="k-actions">
           <input

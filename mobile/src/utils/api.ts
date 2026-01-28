@@ -1,8 +1,6 @@
-export const API_URL = (import.meta as any).env?.VITE_API_URL || "/api";
+﻿export const API_URL = (import.meta as any).env?.VITE_API_URL || "/api";
 
-/* =========================
-   TYPES
-   ========================= */
+
 
 export interface ProfileType {
   id: number;
@@ -126,9 +124,7 @@ export interface ApiResponse<T = any> {
   allowed?: string[];
 }
 
-/* =========================
-   TOKEN
-   ========================= */
+
 
 export function getToken(): string | null {
   return localStorage.getItem("token");
@@ -142,9 +138,7 @@ export function removeToken(): void {
   localStorage.removeItem("token");
 }
 
-/* =========================
-   CORE FETCH
-   ========================= */
+
 
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
   const token = getToken();
@@ -188,9 +182,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<Api
   }
 }
 
-/* =========================
-   AUTH
-   ========================= */
+
 
 export async function login(email: string, password: string): Promise<ApiResponse<{ token: string; user: any }>> {
   const resp = await apiFetch<{ token: string; user: any }>("/auth/login", {
@@ -232,9 +224,7 @@ export async function logout(): Promise<ApiResponse> {
   return { success: true, message: "Wylogowano" };
 }
 
-/* =========================
-   PROFILE / ME
-   ========================= */
+
 
 export async function getMyProfile(): Promise<ProfileType> {
   const resp = await apiFetch<ProfileType>("/profile", { method: "GET" });
@@ -246,9 +236,7 @@ export function updateMyProfile(data: Partial<Pick<ProfileType, "imie" | "nazwis
   return apiFetch<ProfileType>("/profile", { method: "PATCH", body: JSON.stringify(data) });
 }
 
-/* =========================
-   ORDERS
-   ========================= */
+
 
 export function getOrders(): Promise<ApiResponse<OrderType[]>> {
   return apiFetch<OrderType[]>("/orders", { method: "GET" });
@@ -278,9 +266,7 @@ export function deleteOrder(id: number): Promise<ApiResponse> {
   return apiFetch(`/orders/${id}`, { method: "DELETE" });
 }
 
-/* =========================
-   CUSTOMERS
-   ========================= */
+
 
 export function getCustomers(): Promise<ApiResponse<CustomerType[]>> {
   return apiFetch<CustomerType[]>("/customers", { method: "GET" });
@@ -298,9 +284,7 @@ export function deleteCustomer(id: number): Promise<ApiResponse> {
   return apiFetch(`/customers/${id}`, { method: "DELETE" });
 }
 
-/* =========================
-   VEHICLES
-   ========================= */
+
 
 export function getVehicles(): Promise<ApiResponse<VehicleType[]>> {
   return apiFetch<VehicleType[]>("/vehicles", { method: "GET" });
@@ -325,9 +309,7 @@ export function deleteVehicle(id: number): Promise<ApiResponse> {
   return apiFetch(`/vehicles/${id}`, { method: "DELETE" });
 }
 
-/* =========================
-   APPOINTMENTS
-   ========================= */
+
 
 export function getAppointments(): Promise<ApiResponse<AppointmentType[]>> {
   return apiFetch<AppointmentType[]>("/appointments", { method: "GET" });
@@ -345,9 +327,7 @@ export function deleteAppointment(id: number): Promise<ApiResponse> {
   return apiFetch(`/appointments/${id}`, { method: "DELETE" });
 }
 
-/* =========================
-   PARTS (MAGAZYN)
-   ========================= */
+
 
 export function getParts(): Promise<ApiResponse<PartType[]>> {
   return apiFetch<PartType[]>("/parts", { method: "GET" });
@@ -369,9 +349,7 @@ export function deletePart(id: number): Promise<ApiResponse> {
   return apiFetch(`/parts/${id}`, { method: "DELETE" });
 }
 
-/* =========================
-   INVOICES
-   ========================= */
+
 
 export function getInvoices(): Promise<ApiResponse<InvoiceType[]>> {
   return apiFetch<InvoiceType[]>("/invoices", { method: "GET" });
@@ -389,9 +367,7 @@ export function deleteInvoice(id: number): Promise<ApiResponse> {
   return apiFetch(`/invoices/${id}`, { method: "DELETE" });
 }
 
-/* =========================
-   NOTIFICATIONS
-   ========================= */
+
 
 export function getNotifications(): Promise<ApiResponse<NotificationType[]>> {
   return apiFetch<NotificationType[]>("/notifications", { method: "GET" });
@@ -409,9 +385,7 @@ export function deleteNotification(id: number): Promise<ApiResponse> {
   return apiFetch(`/notifications/${id}`, { method: "DELETE" });
 }
 
-/* =========================
-   MESSAGES (CHAT)
-   ========================= */
+
 
 export function getThreads(q?: string): Promise<ApiResponse<ThreadType[]>> {
   const qs = q ? `?q=${encodeURIComponent(q)}` : "";
@@ -433,9 +407,7 @@ export function sendMessage(threadId: number, text: string): Promise<ApiResponse
   });
 }
 
-/* =========================
-   ADMIN USERS
-   ========================= */
+
 
 export interface AdminUserType {
   id: number;
@@ -471,3 +443,4 @@ export function updateUserAdmin(id: number, data: Partial<Pick<AdminUserType, "r
 export function adminResetUserPassword(data: { mail: string; imie: string; nowe_haslo: string }): Promise<ApiResponse> {
   return resetPassword(data);
 }
+

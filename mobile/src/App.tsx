@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginScreen from './screens/Auth/LoginScreen'
 import HomeScreen from './screens/Dashboard/HomeScreen'
@@ -18,6 +18,7 @@ import AiHelper from './screens/AiHelper/AiHelper'
 import Messages from './screens/Messages/Messages'
 import RegisterScreen from './screens/Auth/RegisterScreen'
 import ResetPasswordScreen from './screens/Auth/ResetPasswordScreen'
+import { ProtectedRoute } from './components/ProtectedRoute'
 
 function App() {
   return (
@@ -27,7 +28,9 @@ function App() {
         <Route path="/login" element={<LoginScreen />} />
         <Route path="/register" element={<RegisterScreen />} />
         <Route path="/reset-password" element={<ResetPasswordScreen />} />
-        <Route path="/home" element={<ErrorBoundary><HomeScreen /></ErrorBoundary>} />
+        
+        {}
+        <Route path="/home" element={<ProtectedRoute><ErrorBoundary><HomeScreen /></ErrorBoundary></ProtectedRoute>} />
         <Route path="/profile" element={<PlaceholderScreen />} />
         <Route path="/edit-profile" element={<PlaceholderScreen />} />
         <Route path="/list" element={<PlaceholderScreen />} />
@@ -46,21 +49,44 @@ function App() {
         <Route path="/raport" element={<PlaceholderScreen />} />
         <Route path="/add-raport" element={<PlaceholderScreen />} />
         <Route path="/user-rapports" element={<PlaceholderScreen />} />
-        <Route path="/UserProfileScreen" element={<UserProfileScreen />} />
-        <Route path="/zlecenia" element={<Zlecenia />} />
-        <Route path="/pojazdy" element={<Pojazdy />} />
-        <Route path="/klienci" element={<Klienci />} />
-        <Route path="/kalendarz" element={<Kalendarz />} />
-        <Route path="/search" element={<Search />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/admin/uzytkownicy" element={<AdminUsers />} />
-        <Route path="/magazyn" element={<Magazyn />} />
-        <Route path="/faktury" element={<Faktury />} />
-        <Route path="/ai" element={<AiHelper />} />
-        <Route path="/wiadomosci" element={<Messages />} />
+        <Route path="/UserProfileScreen" element={<ProtectedRoute><UserProfileScreen /></ProtectedRoute>} />
+        
+        {}
+        <Route path="/zlecenia" element={<ProtectedRoute requiredPermission="canViewOrders"><Zlecenia /></ProtectedRoute>} />
+        
+        {}
+        <Route path="/pojazdy" element={<ProtectedRoute requiredPermission="canViewVehicles"><Pojazdy /></ProtectedRoute>} />
+        
+        {}
+        <Route path="/klienci" element={<ProtectedRoute requiredPermission="canViewCustomers"><Klienci /></ProtectedRoute>} />
+        
+        {}
+        <Route path="/kalendarz" element={<ProtectedRoute requiredPermission="canViewAppointments"><Kalendarz /></ProtectedRoute>} />
+        
+        {}
+        <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+        
+        {}
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        
+        {}
+        <Route path="/admin/uzytkownicy" element={<ProtectedRoute requiredPermission="canManageUsers"><AdminUsers /></ProtectedRoute>} />
+        
+        {}
+        <Route path="/magazyn" element={<ProtectedRoute requiredPermission="canViewWarehouse"><Magazyn /></ProtectedRoute>} />
+        
+        {}
+        <Route path="/faktury" element={<ProtectedRoute requiredPermission="canViewInvoices"><Faktury /></ProtectedRoute>} />
+        
+        {}
+        <Route path="/ai" element={<ProtectedRoute requiredPermission="canViewAiHelper"><AiHelper /></ProtectedRoute>} />
+        
+        {}
+        <Route path="/wiadomosci" element={<ProtectedRoute requiredPermission="canViewMessages"><Messages /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )
 }
 
 export default App
+

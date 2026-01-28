@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import AppButton from '../../components/AppButton/AppButton'
 import './Kalendarz.css'
 import {
   getAppointments,
@@ -19,6 +21,7 @@ function toISODate(d: Date) {
 }
 
 export default function Kalendarz() {
+  const navigate = useNavigate()
   const [selected, setSelected] = useState<string>(toISODate(new Date()))
 
   const [loading, setLoading] = useState(true)
@@ -172,6 +175,9 @@ export default function Kalendarz() {
   return (
     <div className="kalendarz-container">
       <div className="kalendarz-header">
+        <AppButton variant="back" onClick={() => navigate(-1)}>
+          ← Wróć
+        </AppButton>
         <h1>Kalendarz</h1>
         <div className="k-actions">
           <button className="k-btn-primary" onClick={() => setOpen(true)}>

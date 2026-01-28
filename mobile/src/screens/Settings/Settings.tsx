@@ -1,7 +1,10 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import AppButton from '../../components/AppButton/AppButton'
 import './Settings.css'
 
 const Settings: React.FC = () => {
+  const navigate = useNavigate()
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [notifications, setNotifications] = useState(true)
   const [lang, setLang] = useState<'pl' | 'en'>('pl')
@@ -9,6 +12,9 @@ const Settings: React.FC = () => {
   return (
     <div className="settings-container">
       <header className="settings-header">
+        <AppButton variant="back" onClick={() => navigate(-1)}>
+          ← Wróć
+        </AppButton>
         <h1>Ustawienia</h1>
       </header>
 

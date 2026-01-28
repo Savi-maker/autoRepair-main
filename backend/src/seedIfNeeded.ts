@@ -1,11 +1,11 @@
-import bcrypt from "bcrypt";
+﻿import bcrypt from "bcrypt";
 import { get, run, all } from "./db.js";
 import { initDb } from "./dbInit.js";
 
 type IdRow = { id: number };
 
 export async function seedIfNeeded() {
-  // upewnij się że tabele są utworzone
+  // upewnij siÄ™ ĹĽe tabele sÄ… utworzone
   await initDb();
 
   // czy tabela users istnieje
@@ -14,14 +14,14 @@ export async function seedIfNeeded() {
   );
   if (!table) return;
 
-  // czy są jacyś użytkownicy
+  // czy sÄ… jacyĹ› uĹĽytkownicy
   const countRow = await get<{ count: number }>(`SELECT COUNT(*) as count FROM users`);
   if (countRow && countRow.count > 0) {
-    console.log("ℹ️ Baza już zawiera dane — seed pominięty");
+    console.log("â„ąď¸Ź Baza juĹĽ zawiera dane â€” seed pominiÄ™ty");
     return;
   }
 
-  console.log("🌱 Pusta baza — wykonuję seed...");
+  console.log("đźŚ± Pusta baza â€” wykonujÄ™ seed...");
 
   // ===== USERS (2) =====
   const users = [
@@ -36,7 +36,7 @@ export async function seedIfNeeded() {
        VALUES (?, ?, ?, ?, ?, ?)`,
       [u.imie, u.nazwisko, u.mail, u.telefon, u.rola, hashed]
     );
-    console.log(`✅ Created user: ${u.mail} (password: ${u.haslo})`);
+    console.log(`âś… Created user: ${u.mail} (password: ${u.haslo})`);
   }
 
   const admin = await get<IdRow>(`SELECT id FROM users WHERE mail = ?`, ["admin@example.com"]);
@@ -66,8 +66,8 @@ export async function seedIfNeeded() {
      VALUES
       (?, 'nowe', ?, ?, ?, ?, ?, datetime('now'), NULL)`,
     [
-      "Wymiana oleju i filtrów",
-      "Wymiana oleju + filtr oleju + kontrola płynów",
+      "Wymiana oleju i filtrĂłw",
+      "Wymiana oleju + filtr oleju + kontrola pĹ‚ynĂłw",
       customerId,
       vehicleId,
       null, // mechanic_user_id
@@ -83,15 +83,15 @@ export async function seedIfNeeded() {
   await run(
     `INSERT INTO appointments (title, start_at, end_at, status, customer_id, vehicle_id, order_id, notes)
      VALUES (?, datetime('now','+1 day'), datetime('now','+1 day','+1 hour'), 'zaplanowana', ?, ?, ?, ?)`,
-    ["Wizyta serwisowa", customerId, vehicleId, orderId, "Przyjechać 10 minut wcześniej"]
+    ["Wizyta serwisowa", customerId, vehicleId, orderId, "PrzyjechaÄ‡ 10 minut wczeĹ›niej"]
   );
 
   // ===== PARTS (2) =====
   await run(
     `INSERT INTO parts (name, sku, brand, stock, min_stock, price, location)
      VALUES
-      ('Filtr oleju', 'FO-TEST-001', 'Bosch', 5, 2, 39.99, 'Regał A1'),
-      ('Olej silnikowy 5W30', 'OIL-TEST-001', 'Castrol', 1, 3, 199.99, 'Magazyn główny')`
+      ('Filtr oleju', 'FO-TEST-001', 'Bosch', 5, 2, 39.99, 'RegaĹ‚ A1'),
+      ('Olej silnikowy 5W30', 'OIL-TEST-001', 'Castrol', 1, 3, 199.99, 'Magazyn gĹ‚Ăłwny')`
   );
 
   // ===== INVOICE (1) =====
@@ -112,7 +112,7 @@ export async function seedIfNeeded() {
   await run(
     `INSERT INTO messages (thread_id, sender_user_id, sender_customer_id, text)
      VALUES (?, ?, NULL, ?)`,
-    [threadId, admin?.id ?? null, "Dzień dobry, potwierdzam przyjęcie auta do serwisu. Dam znać po diagnozie."]
+    [threadId, admin?.id ?? null, "DzieĹ„ dobry, potwierdzam przyjÄ™cie auta do serwisu. Dam znaÄ‡ po diagnozie."]
   );
 
   // ===== NOTIFICATIONS (2) =====
@@ -127,11 +127,12 @@ export async function seedIfNeeded() {
     await run(
       `INSERT INTO notifications (user_id, title, body)
        VALUES (?, ?, ?)`,
-      [testUser.id, "Nowe zlecenie", "Utworzono zlecenie: Wymiana oleju i filtrów"]
+      [testUser.id, "Nowe zlecenie", "Utworzono zlecenie: Wymiana oleju i filtrĂłw"]
     );
   }
 
 
 
-  console.log("✅ Seed zakończony");
+  console.log("âś… Seed zakoĹ„czony");
 }
+

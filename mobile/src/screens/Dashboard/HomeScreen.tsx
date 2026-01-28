@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../utils/useAuth'
 import {
   logout,
   getOrders,
@@ -65,6 +66,7 @@ function sameDay(a: Date, b: Date) {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate()
+  const { hasPermission } = useAuth()
   const [loadingLogout, setLoadingLogout] = useState(false)
 
   // DATA STATE
@@ -85,19 +87,24 @@ const Dashboard: React.FC = () => {
   }
 
   const menuItems = [
-    { path: '/UserProfileScreen', label: '👤 Profil' },
-    { path: '/zlecenia', label: '🧾 Zlecenia' },
-    { path: '/pojazdy', label: '🚗 Pojazdy' },
-    { path: '/klienci', label: '👥 Klienci' },
-    { path: '/kalendarz', label: '📅 Kalendarz' },
-    { path: '/magazyn', label: '📦 Magazyn' },
-    { path: '/faktury', label: '🧾 Faktury' },
-    { path: '/wiadomosci', label: '💬 Wiadomości' },
-    { path: '/ai', label: '🤖 AI' },
-    { path: '/search', label: '🔍 Szukaj' },
-    { path: '/settings', label: '⚙️ Ustawienia' },
-    { path: '/admin/uzytkownicy', label: '👑 Admin' },
+    { path: '/UserProfileScreen', label: '👤 Profil', permission: null as any },
+    { path: '/zlecenia', label: '🧾 Zlecenia', permission: 'canViewOrders' as any },
+    { path: '/pojazdy', label: '🚗 Pojazdy', permission: 'canViewVehicles' as any },
+    { path: '/klienci', label: '👥 Klienci', permission: 'canViewCustomers' as any },
+    { path: '/kalendarz', label: '📅 Kalendarz', permission: 'canViewAppointments' as any },
+    { path: '/magazyn', label: '📦 Magazyn', permission: 'canViewWarehouse' as any },
+    { path: '/faktury', label: '🧾 Faktury', permission: 'canViewInvoices' as any },
+    { path: '/wiadomosci', label: '💬 Wiadomości', permission: 'canViewMessages' as any },
+    { path: '/ai', label: '🤖 AI', permission: 'canViewAiHelper' as any },
+    { path: '/search', label: '🔍 Szukaj', permission: null as any },
+    { path: '/settings', label: '⚙️ Ustawienia', permission: null as any },
+    { path: '/admin/uzytkownicy', label: '👑 Admin', permission: 'canViewAdminPanel' as any },
   ]
+
+  // Filter menu items based on permissions
+  const filteredMenuItems = menuItems.filter(
+    (item) => !item.permission || hasPermission(item.permission)
+  )
 
   useEffect(() => {
     let alive = true
@@ -388,7 +395,7 @@ const Dashboard: React.FC = () => {
       </header>
 
       <div className="top-menu-bar">
-        {menuItems.map((item) => (
+        {filteredMenuItems.map((item) => (
           <button key={item.path} onClick={() => navigate(item.path)} className="top-menu-card">
             <div className="menu-icon">{item.label.split(' ')[0]}</div>
             <div className="top-menu-label">{item.label.split(' ').slice(1).join(' ')}</div>
