@@ -24,7 +24,7 @@ const AppButton: React.FC<Props> = ({
       disabled={isDisabled}
       className={`app-btn app-btn--${variant} ${isDisabled ? 'app-btn--disabled' : ''} ${className}`.trim()}
     >
-      {loading ? 'Ĺadowanieâ€¦' : children}
+      {loading ? 'Ładowanie…' : children}
     </button>
   )
 }

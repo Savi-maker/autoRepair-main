@@ -15,7 +15,7 @@ export function ProtectedRoute({ children, requiredPermission }: ProtectedRouteP
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#fff' }}>
-        âŹł Ĺadowanieâ€¦
+        ⏳ Ładowanie…
       </div>
     );
   }
@@ -38,9 +38,9 @@ export function ProtectedRoute({ children, requiredPermission }: ProtectedRouteP
           padding: '20px',
         }}
       >
-        <div style={{ fontSize: '48px', marginBottom: '20px' }}>đź”’</div>
-        <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '10px' }}>Brak dostÄ™pu</div>
-        <div style={{ fontSize: '14px', color: '#ccc' }}>Nie masz uprawnieĹ„ do tej sekcji</div>
+        <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔒</div>
+        <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '10px' }}>Brak dostępu</div>
+        <div style={{ fontSize: '14px', color: '#ccc' }}>Nie masz uprawnień do tej sekcji</div>
       </div>
     );
   }

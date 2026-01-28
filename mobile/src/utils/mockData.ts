@@ -12,15 +12,15 @@ export const vehicles: Vehicle[] = [
 ];
 
 export const orders: Order[] = [
-  { id: 'o1', vehicleId: 'v1', customerId: 'c1', service: 'PrzeglÄ…d + wymiana oleju', mechanic: 'Jan Kowalski', startDate: '2025-11-20T10:30:00', status: 'oczekujÄ…ce', cost: 350 },
-  { id: 'o2', vehicleId: 'v2', customerId: 'c2', service: 'Wymiana klockĂłw + tarcz', mechanic: 'Piotr Nowak', startDate: '2025-11-18T08:00:00', status: 'w trakcie' },
-  { id: 'o3', vehicleId: 'v1', customerId: 'c1', service: 'Diagnostyka zawieszenia', mechanic: 'Ewa ZieliĹ„ska', startDate: '2025-10-02T14:00:00', status: 'zakoĹ„czone', cost: 220 },
-  { id: 'o4', vehicleId: 'v3', service: 'Wymiana akumulatora', mechanic: 'Marek Lewandowski', startDate: '2025-11-21T12:00:00', status: 'oczekujÄ…ce' },
+  { id: 'o1', vehicleId: 'v1', customerId: 'c1', service: 'Przegląd + wymiana oleju', mechanic: 'Jan Kowalski', startDate: '2025-11-20T10:30:00', status: 'oczekujące', cost: 350 },
+  { id: 'o2', vehicleId: 'v2', customerId: 'c2', service: 'Wymiana klocków + tarcz', mechanic: 'Piotr Nowak', startDate: '2025-11-18T08:00:00', status: 'w trakcie' },
+  { id: 'o3', vehicleId: 'v1', customerId: 'c1', service: 'Diagnostyka zawieszenia', mechanic: 'Ewa Zielińska', startDate: '2025-10-02T14:00:00', status: 'zakończone', cost: 220 },
+  { id: 'o4', vehicleId: 'v3', service: 'Wymiana akumulatora', mechanic: 'Marek Lewandowski', startDate: '2025-11-21T12:00:00', status: 'oczekujące' },
 ];
 
 export const visits: Visit[] = [
-  { id: 'vis1', date: '2025-11-20T10:30:00', title: 'PrzeglÄ…d + olej', vehicleId: 'v1', customerId: 'c1', status: 'oczekujÄ…ce' },
+  { id: 'vis1', date: '2025-11-20T10:30:00', title: 'Przegląd + olej', vehicleId: 'v1', customerId: 'c1', status: 'oczekujące' },
   { id: 'vis2', date: '2025-11-18T08:00:00', title: 'Klocki + tarcze', vehicleId: 'v2', customerId: 'c2', status: 'w trakcie' },
-  { id: 'vis3', date: '2025-11-21T12:00:00', title: 'Akumulator', vehicleId: 'v3', status: 'oczekujÄ…ce' },
+  { id: 'vis3', date: '2025-11-21T12:00:00', title: 'Akumulator', vehicleId: 'v3', status: 'oczekujące' },
 ];
 

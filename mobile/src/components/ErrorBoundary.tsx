@@ -20,9 +20,9 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     if (this.state.hasError) {
       return (
         <div style={{ padding: 40, color: '#ffb3b3' }}>
-          <h2>CoĹ› poszĹ‚o nie tak na tej stronie.</h2>
+          <h2>Coś poszło nie tak na tej stronie.</h2>
           <pre style={{ whiteSpace: 'pre-wrap' }}>{String(this.state.error)}</pre>
-          <p>SprawdĹş konsolÄ™ deweloperskÄ… (DevTools) po wiÄ™cej szczegĂłĹ‚Ăłw.</p>
+          <p>Sprawdź konsolę deweloperską (DevTools) po więcej szczegółów.</p>
         </div>
       )
     }

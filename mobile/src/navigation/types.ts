@@ -27,7 +27,7 @@
   UserRaports: undefined;
 };
 
-export type OrderStatus = 'oczekujÄ…ce' | 'w trakcie' | 'zakoĹ„czone' | 'anulowane';
+export type OrderStatus = 'oczekujące' | 'w trakcie' | 'zakończone' | 'anulowane';
 
 export interface Customer {
   id: string;
