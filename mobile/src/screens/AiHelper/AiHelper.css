@@ -1,17 +1,17 @@
 .ai-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #2a2a2a 100%);
-  color: #fff;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
+  color: var(--text-primary);
   padding: 40px 50px;
 }
 .ai-header {
   padding: 20px; margin: -20px -20px 18px -20px;
-  background: linear-gradient(90deg, #1a1a1a 0%, #2a2a2a 100%);
-  border-bottom: 3px solid #ff6600; box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  border-bottom: 3px solid var(--accent-primary); box-shadow: 0 8px 30px var(--shadow-color);
   border-radius: 10px;
 }
 .ai-header h1 {
-  margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; color: #ff6600; text-shadow: 0 2px 8px rgba(255,102,0,0.3);
+  margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; color: var(--accent-primary); text-shadow: 0 2px 8px rgba(255,102,0,0.3);
 }
 .ai-chat {
   max-width: 900px; margin: 0 auto 16px;
@@ -21,22 +21,22 @@
 .msg.user { justify-content: flex-end; }
 .bubble {
   max-width: 70%; padding: 12px 14px; border-radius: 14px;
-  background: linear-gradient(135deg, #151515 0%, #222 100%);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
   border: 1px solid rgba(255,102,0,0.12);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+  box-shadow: 0 12px 30px var(--shadow-color);
   white-space: pre-wrap;
 }
 .msg.user .bubble {
-  background: #ff6600; color: #111; border: none;
+  background: var(--accent-primary); color: var(--bg-primary); border: none;
   box-shadow: 0 12px 30px rgba(255,102,0,0.25);
 }
 .ai-hints {
   max-width: 900px; margin: 0 auto 10px;
-  background: linear-gradient(135deg, #131313 0%, #1d1d1d 100%);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
   border: 1px solid rgba(255,102,0,0.08);
-  border-radius: 12px; padding: 12px; color: #ccc;
+  border-radius: 12px; padding: 12px; color: var(--text-secondary);
 }
-.hint-title { color: #ffcc99; font-weight: 800; margin-bottom: 6px; }
+.hint-title { color: var(--accent-secondary); font-weight: 800; margin-bottom: 6px; }
 .ai-input {
   max-width: 900px; margin: 10px auto 40px;
   display: flex; gap: 10px; align-items: flex-end;
@@ -44,11 +44,11 @@
 .ai-input textarea {
   flex: 1; min-height: 64px; max-height: 200px; resize: vertical;
   padding: 12px 14px; border-radius: 12px;
-  background: linear-gradient(135deg, #111 0%, #1f1f1f 100%);
-  border: 1px solid rgba(255,102,0,0.12); color: #fff;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  border: 1px solid rgba(255,102,0,0.12); color: var(--text-primary);
 }
 .ai-btn-primary {
-  background: #ff6600; color: #111; border: none;
+  background: var(--accent-primary); color: var(--bg-primary); border: none;
   padding: 12px 18px; border-radius: 12px; font-weight: 800; cursor: pointer;
 }
 @media (max-width: 768px){ .ai-container{padding:30px 30px;} .bubble{max-width:85%;} }
