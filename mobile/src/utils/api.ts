@@ -122,6 +122,12 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   allowed?: string[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 
@@ -238,8 +244,12 @@ export function updateMyProfile(data: Partial<Pick<ProfileType, "imie" | "nazwis
 
 
 
-export function getOrders(): Promise<ApiResponse<OrderType[]>> {
-  return apiFetch<OrderType[]>("/orders", { method: "GET" });
+export function getOrders(page?: number, limit?: number): Promise<ApiResponse<OrderType[]>> {
+  const params = new URLSearchParams();
+  if (page !== undefined) params.append("page", String(page));
+  if (limit !== undefined) params.append("limit", String(limit));
+  const query = params.toString();
+  return apiFetch<OrderType[]>(`/orders${query ? "?" + query : ""}`, { method: "GET" });
 }
 
 export function getOrderById(id: number): Promise<ApiResponse<OrderType>> {
@@ -268,8 +278,12 @@ export function deleteOrder(id: number): Promise<ApiResponse> {
 
 
 
-export function getCustomers(): Promise<ApiResponse<CustomerType[]>> {
-  return apiFetch<CustomerType[]>("/customers", { method: "GET" });
+export function getCustomers(page?: number, limit?: number): Promise<ApiResponse<CustomerType[]>> {
+  const params = new URLSearchParams();
+  if (page !== undefined) params.append("page", String(page));
+  if (limit !== undefined) params.append("limit", String(limit));
+  const query = params.toString();
+  return apiFetch<CustomerType[]>(`/customers${query ? "?" + query : ""}`, { method: "GET" });
 }
 
 export function createCustomer(data: { name: string; email?: string; phone?: string; notes?: string }): Promise<ApiResponse<CustomerType>> {
@@ -286,8 +300,12 @@ export function deleteCustomer(id: number): Promise<ApiResponse> {
 
 
 
-export function getVehicles(): Promise<ApiResponse<VehicleType[]>> {
-  return apiFetch<VehicleType[]>("/vehicles", { method: "GET" });
+export function getVehicles(page?: number, limit?: number): Promise<ApiResponse<VehicleType[]>> {
+  const params = new URLSearchParams();
+  if (page !== undefined) params.append("page", String(page));
+  if (limit !== undefined) params.append("limit", String(limit));
+  const query = params.toString();
+  return apiFetch<VehicleType[]>(`/vehicles${query ? "?" + query : ""}`, { method: "GET" });
 }
 
 export function createVehicle(data: {
@@ -311,8 +329,12 @@ export function deleteVehicle(id: number): Promise<ApiResponse> {
 
 
 
-export function getAppointments(): Promise<ApiResponse<AppointmentType[]>> {
-  return apiFetch<AppointmentType[]>("/appointments", { method: "GET" });
+export function getAppointments(page?: number, limit?: number): Promise<ApiResponse<AppointmentType[]>> {
+  const params = new URLSearchParams();
+  if (page !== undefined) params.append("page", String(page));
+  if (limit !== undefined) params.append("limit", String(limit));
+  const query = params.toString();
+  return apiFetch<AppointmentType[]>(`/appointments${query ? "?" + query : ""}`, { method: "GET" });
 }
 
 export function createAppointment(data: Partial<AppointmentType>): Promise<ApiResponse<AppointmentType>> {

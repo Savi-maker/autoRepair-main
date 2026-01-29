@@ -113,31 +113,42 @@ const Dashboard: React.FC = () => {
       setLoadingData(true)
       setError(null)
 
-      const [o, a, ls, inv, th, n] = await Promise.all([
-        getOrders(),
-        getAppointments(),
-        getLowStockParts(),
-        getInvoices(),
-        getThreads(),
-        getNotifications(),
-      ])
+      const withTimeout = (promise: any, ms: number) =>
+        Promise.race([
+          promise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
+        ])
 
-      if (!alive) return
+      try {
+        const [o, a, ls, inv, th, n] = await Promise.allSettled([
+          withTimeout(getOrders(), 10000),
+          withTimeout(getAppointments(), 10000),
+          withTimeout(getLowStockParts(), 10000),
+          withTimeout(getInvoices(), 10000),
+          withTimeout(getThreads(), 10000),
+          withTimeout(getNotifications(), 10000),
+        ])
 
-      if (!o.success) return setError(o.message || 'Błąd pobierania zleceń'), setLoadingData(false)
-      if (!a.success) return setError(a.message || 'Błąd pobierania kalendarza'), setLoadingData(false)
-      if (!ls.success) return setError(ls.message || 'Błąd pobierania magazynu'), setLoadingData(false)
-      if (!inv.success) return setError(inv.message || 'Błąd pobierania faktur'), setLoadingData(false)
-      if (!th.success) return setError(th.message || 'Błąd pobierania wiadomości'), setLoadingData(false)
-      if (!n.success) return setError(n.message || 'Błąd pobierania powiadomień'), setLoadingData(false)
+        if (!alive) return
 
-      setOrders(o.data || [])
-      setAppointments(a.data || [])
-      setLowStock(ls.data || [])
-      setInvoices(inv.data || [])
-      setThreads(th.data || [])
-      setNotifications(n.data || [])
-      setLoadingData(false)
+        setOrders(o.status === 'fulfilled' && o.value?.success ? o.value.data || [] : [])
+        setAppointments(a.status === 'fulfilled' && a.value?.success ? a.value.data || [] : [])
+        setLowStock(ls.status === 'fulfilled' && ls.value?.success ? ls.value.data || [] : [])
+        setInvoices(inv.status === 'fulfilled' && inv.value?.success ? inv.value.data || [] : [])
+        setThreads(th.status === 'fulfilled' && th.value?.success ? th.value.data || [] : [])
+        setNotifications(n.status === 'fulfilled' && n.value?.success ? n.value.data || [] : [])
+
+        const errors = [o, a, ls, inv, th, n].filter(r => r.status === 'rejected')
+        if (errors.length > 0) {
+          console.warn('Některé data se nepodařily načíst:', errors)
+        }
+      } catch (err: any) {
+        if (alive) {
+          setError('Chyba při načítání dat')
+        }
+      } finally {
+        if (alive) setLoadingData(false)
+      }
     }
 
     load()

@@ -47,6 +47,13 @@ export default function Zlecenia() {
   const [error, setError] = useState<string | null>(null)
 
   const [orders, setOrders] = useState<OrderType[]>([])
+  const [orderPage, setOrderPage] = useState(1)
+  const [orderPagination, setOrderPagination] = useState<any>({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 1
+  })
   const [vehicles, setVehicles] = useState<VehicleType[]>([])
   const [customers, setCustomers] = useState<CustomerType[]>([])
 
@@ -159,44 +166,49 @@ export default function Zlecenia() {
     setEditStatus('oczekujące')
   }
 
-  const reloadAll = async () => {
+  const reloadAll = async (page: number = 1) => {
     setLoading(true)
     setError(null)
 
-    const [oRes, vRes, cRes] = await Promise.all([getOrders(), getVehicles(), getCustomers()])
+    const results = await Promise.allSettled([getOrders(page, 20), getVehicles(), getCustomers()])
 
-    if (!oRes.success) {
-      setError(oRes.message || 'Błąd pobierania zleceń')
-      setLoading(false)
-      return
+    const [oRes, vRes, cRes] = results
+
+    if (oRes.status === 'fulfilled' && oRes.value.success) {
+      setOrders(oRes.value.data || [])
+      if (oRes.value.pagination) {
+        setOrderPagination(oRes.value.pagination)
+      }
     }
-    if (!vRes.success) {
-      setError(vRes.message || 'Błąd pobierania pojazdów')
-      setLoading(false)
-      return
+    if (vRes.status === 'fulfilled' && vRes.value.success) {
+      setVehicles(vRes.value.data || [])
     }
-    if (!cRes.success) {
-      setError(cRes.message || 'Błąd pobierania klientów')
-      setLoading(false)
-      return
+    if (cRes.status === 'fulfilled' && cRes.value.success) {
+      setCustomers(cRes.value.data || [])
     }
 
-    setOrders(oRes.data || [])
-    setVehicles(vRes.data || [])
-    setCustomers(cRes.data || [])
+    const hasError = results.some(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success))
+    if (hasError) {
+      const failedLoads = []
+      if (oRes.status === 'rejected' || (oRes.status === 'fulfilled' && !oRes.value.success)) failedLoads.push('zlecenia')
+      if (vRes.status === 'rejected' || (vRes.status === 'fulfilled' && !vRes.value.success)) failedLoads.push('pojazdy')
+      if (cRes.status === 'rejected' || (cRes.status === 'fulfilled' && !cRes.value.success)) failedLoads.push('klienci')
+      setError(`Błąd pobierania: ${failedLoads.join(', ')}`)
+    }
+
     setLoading(false)
   }
 
   useEffect(() => {
     let alive = true
     ;(async () => {
-      await reloadAll()
+      await reloadAll(orderPage)
       if (!alive) return
     })()
     return () => {
       alive = false
     }
-  }, [])
+  }, [orderPage])
 
   const vehiclesForCustomer = useMemo(() => {
     if (!customerId) return []
@@ -394,6 +406,51 @@ export default function Zlecenia() {
           )
         })}
       </div>
+
+      {orderPagination.totalPages > 1 && (
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          justifyContent: 'center', 
+          padding: '16px 0',
+          flexWrap: 'wrap',
+          alignItems: 'center'
+        }}>
+          <button 
+            onClick={() => setOrderPage(p => Math.max(1, p - 1))}
+            disabled={orderPage === 1}
+            style={{
+              padding: '8px 16px',
+              background: orderPage === 1 ? '#555' : '#ff6600',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: orderPage === 1 ? 'not-allowed' : 'pointer',
+              opacity: orderPage === 1 ? 0.5 : 1,
+            }}
+          >
+            ← Poprzednia
+          </button>
+          <span style={{ color: '#ccc', fontSize: '14px' }}>
+            Strona <b>{orderPage}</b> z <b>{orderPagination.totalPages}</b>
+          </span>
+          <button 
+            onClick={() => setOrderPage(p => p + 1)}
+            disabled={orderPage >= orderPagination.totalPages}
+            style={{
+              padding: '8px 16px',
+              background: orderPage >= orderPagination.totalPages ? '#555' : '#ff6600',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: orderPage >= orderPagination.totalPages ? 'not-allowed' : 'pointer',
+              opacity: orderPage >= orderPagination.totalPages ? 0.5 : 1,
+            }}
+          >
+            Następna →
+          </button>
+        </div>
+      )}
 
       {open && (
         <div

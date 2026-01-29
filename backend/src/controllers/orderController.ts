@@ -22,6 +22,15 @@ export async function listOrders(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({ success: false, message: "Nieprawidłowe page/limit" });
+    }
+
+    const offset = (page - 1) * limit;
+
     const role = getRole(req);
     const isAdmin = canSeeAll(req);
     const isCustomer = role === "user";
@@ -45,24 +54,44 @@ export async function listOrders(req: AuthRequest, res: Response) {
 
     let params: any[] = [];
 
-
     if (isCustomer && customerId) {
       query += ` WHERE o.customer_id = ?`;
       params = [customerId];
     } else if (isMechanic) {
-
       query += ` WHERE o.mechanic_user_id = ? OR o.created_by_user_id = ?`;
       params = [req.user.id, req.user.id];
     } else if (!isAdmin) {
-
       query += ` WHERE o.created_by_user_id = ?`;
       params = [req.user.id];
     }
 
-    query += ` ORDER BY o.id DESC`;
+    query += ` ORDER BY o.id DESC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
 
     const rows = await all(query, params);
-    return res.json({ success: true, message: "OK", data: rows });
+
+    let countQuery = `SELECT COUNT(*) as total FROM orders o`;
+    let countParams: any[] = [];
+    if (isCustomer && customerId) {
+      countQuery += ` WHERE o.customer_id = ?`;
+      countParams = [customerId];
+    } else if (isMechanic) {
+      countQuery += ` WHERE o.mechanic_user_id = ? OR o.created_by_user_id = ?`;
+      countParams = [req.user.id, req.user.id];
+    } else if (!isAdmin) {
+      countQuery += ` WHERE o.created_by_user_id = ?`;
+      countParams = [req.user.id];
+    }
+    const countRow = await get(countQuery, countParams);
+    const total = countRow?.total || 0;
+    const totalPages = Math.ceil(total / limit);
+
+    return res.json({
+      success: true,
+      message: "OK",
+      data: rows,
+      pagination: { page, limit, total, totalPages }
+    });
   } catch (e: any) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }

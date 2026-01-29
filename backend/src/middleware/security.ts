@@ -56,8 +56,8 @@ export const authLimiter = rateLimit({
 })
 
 export const apiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 30,
+  windowMs: 15 * 60 * 1000,
+  max: 200,
   message: 'Zbyt wiele żądań do tego endpointu, spróbuj ponownie później.',
   standardHeaders: true,
   legacyHeaders: false,

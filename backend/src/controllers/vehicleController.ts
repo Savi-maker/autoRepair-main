@@ -7,6 +7,15 @@ export async function listVehicles(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({ success: false, message: "Nieprawidłowe page/limit" });
+    }
+
+    const offset = (page - 1) * limit;
+
     const role = normalizeRole(req.user.rola);
     const isViewer = role === "admin" || role === "kierownik" || role === "recepcja" || role === "mechanik" || role === "user";
     if (!isViewer) return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
@@ -23,7 +32,6 @@ export async function listVehicles(req: AuthRequest, res: Response) {
 
     let params: any[] = [];
 
-
     if (isCustomer && customerId) {
       query += ` WHERE v.customer_id = ?`;
       params = [customerId];
@@ -39,10 +47,32 @@ export async function listVehicles(req: AuthRequest, res: Response) {
       params = params.concat(searchParams);
     }
 
-    query += ` ORDER BY v.id DESC`;
+    query += ` ORDER BY v.id DESC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
 
     const rows = await all(query, params);
-    return res.json({ success: true, message: "OK", data: rows });
+
+    let countQuery = `SELECT COUNT(*) as total FROM vehicles v`;
+    let countParams: any[] = [];
+    if (isCustomer && customerId) {
+      countQuery += ` WHERE v.customer_id = ?`;
+      countParams = [customerId];
+    }
+    if (q) {
+      const searchParams = [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`];
+      if (countParams.length > 0) {
+        countQuery += ` AND (v.plate LIKE ? OR v.vin LIKE ? OR v.make LIKE ? OR v.model LIKE ? OR c.name LIKE ?)`;
+      } else {
+        countQuery += ` WHERE (v.plate LIKE ? OR v.vin LIKE ? OR v.make LIKE ? OR v.model LIKE ? OR c.name LIKE ?)`;
+      }
+      countQuery += ` LEFT JOIN customers c ON c.id = v.customer_id`;
+      countParams = countParams.concat(searchParams);
+    }
+    const countRow = await get(countQuery, countParams);
+    const total = countRow?.total || 0;
+    const totalPages = Math.ceil(total / limit);
+
+    return res.json({ success: true, message: "OK", data: rows, pagination: { page, limit, total, totalPages } });
   } catch (e: any) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }

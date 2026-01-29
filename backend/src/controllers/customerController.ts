@@ -7,6 +7,15 @@ export async function listCustomers(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({ success: false, message: "Nieprawidłowe page/limit" });
+    }
+
+    const offset = (page - 1) * limit;
+
     const role = normalizeRole(req.user.rola);
     const isUser = role === "user";
     const isViewer = role === "admin" || role === "kierownik" || role === "recepcja" || role === "mechanik" || isUser;
@@ -16,7 +25,7 @@ export async function listCustomers(req: AuthRequest, res: Response) {
 
     if (isUser) {
       if (!req.user.customer_id) {
-        return res.json({ success: true, message: "OK", data: [] });
+        return res.json({ success: true, message: "OK", data: [], pagination: { page, limit, total: 0, totalPages: 0 } });
       }
 
       const row = await get(
@@ -25,24 +34,34 @@ export async function listCustomers(req: AuthRequest, res: Response) {
          WHERE id = ?`,
         [req.user.customer_id]
       );
-      return res.json({ success: true, message: "OK", data: row ? [row] : [] });
+      return res.json({ success: true, message: "OK", data: row ? [row] : [], pagination: { page, limit, total: row ? 1 : 0, totalPages: row ? 1 : 0 } });
     }
 
-    const rows = q
-      ? await all(
-          `SELECT id, name, email, phone, notes, created_at
-           FROM customers
-           WHERE name LIKE ? OR email LIKE ? OR phone LIKE ?
-           ORDER BY id DESC`,
-          [`%${q}%`, `%${q}%`, `%${q}%`]
-        )
-      : await all(
-          `SELECT id, name, email, phone, notes, created_at
-           FROM customers
-           ORDER BY id DESC`
-        );
+    let query = `SELECT id, name, email, phone, notes, created_at
+           FROM customers`;
+    let params: any[] = [];
 
-    return res.json({ success: true, message: "OK", data: rows });
+    if (q) {
+      query += ` WHERE name LIKE ? OR email LIKE ? OR phone LIKE ?`;
+      params = [`%${q}%`, `%${q}%`, `%${q}%`];
+    }
+
+    query += ` ORDER BY id DESC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+
+    const rows = await all(query, params);
+
+    let countQuery = `SELECT COUNT(*) as total FROM customers`;
+    let countParams: any[] = [];
+    if (q) {
+      countQuery += ` WHERE name LIKE ? OR email LIKE ? OR phone LIKE ?`;
+      countParams = [`%${q}%`, `%${q}%`, `%${q}%`];
+    }
+    const countRow = await get(countQuery, countParams);
+    const total = countRow?.total || 0;
+    const totalPages = Math.ceil(total / limit);
+
+    return res.json({ success: true, message: "OK", data: rows, pagination: { page, limit, total, totalPages } });
   } catch (e: any) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }

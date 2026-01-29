@@ -30,6 +30,8 @@ export default function Kalendarz() {
   const [appointments, setAppointments] = useState<AppointmentType[]>([])
   const [vehicles, setVehicles] = useState<VehicleType[]>([])
   const [customers, setCustomers] = useState<CustomerType[]>([])
+  const [appointmentPagination, setAppointmentPagination] = useState<any>({ page: 1, limit: 50, total: 0, totalPages: 1 })
+  const [appointmentPage, setAppointmentPage] = useState(1)
 
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -57,44 +59,53 @@ export default function Kalendarz() {
     resetForm()
   }
 
-  const reloadAll = async () => {
+  const reloadAll = async (page: number = 1) => {
     setLoading(true)
     setError(null)
 
-    const [aRes, vRes, cRes] = await Promise.all([getAppointments(), getVehicles(), getCustomers()])
+    const results = await Promise.allSettled([
+      getAppointments(page, 50),
+      getVehicles(),
+      getCustomers(),
+    ])
 
-    if (!aRes.success) {
-      setError(aRes.message || 'Błąd pobierania wizyt')
-      setLoading(false)
-      return
+    const [aRes, vRes, cRes] = results
+
+    if (aRes.status === 'fulfilled' && aRes.value.success) {
+      setAppointments(aRes.value.data || [])
+      if (aRes.value.pagination) {
+        setAppointmentPagination(aRes.value.pagination)
+      }
     }
-    if (!vRes.success) {
-      setError(vRes.message || 'Błąd pobierania pojazdów')
-      setLoading(false)
-      return
+    if (vRes.status === 'fulfilled' && vRes.value.success) {
+      setVehicles(vRes.value.data || [])
     }
-    if (!cRes.success) {
-      setError(cRes.message || 'Błąd pobierania klientów')
-      setLoading(false)
-      return
+    if (cRes.status === 'fulfilled' && cRes.value.success) {
+      setCustomers(cRes.value.data || [])
     }
 
-    setAppointments(aRes.data || [])
-    setVehicles(vRes.data || [])
-    setCustomers(cRes.data || [])
+    const hasError = results.some(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success))
+    if (hasError) {
+      const failedLoads = []
+      if (aRes.status === 'rejected' || (aRes.status === 'fulfilled' && !aRes.value.success)) failedLoads.push('wizyty')
+      if (vRes.status === 'rejected' || (vRes.status === 'fulfilled' && !vRes.value.success)) failedLoads.push('pojazdy')
+      if (cRes.status === 'rejected' || (cRes.status === 'fulfilled' && !cRes.value.success)) failedLoads.push('klienci')
+      setError(`Błąd pobierania: ${failedLoads.join(', ')}`)
+    }
+
     setLoading(false)
   }
 
   useEffect(() => {
     let alive = true
     ;(async () => {
-      await reloadAll()
+      await reloadAll(appointmentPage)
       if (!alive) return
     })()
     return () => {
       alive = false
     }
-  }, [])
+  }, [appointmentPage])
 
   const days = useMemo(() => {
     const base = new Date()
@@ -248,6 +259,51 @@ export default function Kalendarz() {
           })
         )}
       </div>
+
+      {appointmentPagination.totalPages > 1 && (
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          justifyContent: 'center', 
+          padding: '16px 0',
+          flexWrap: 'wrap',
+          alignItems: 'center'
+        }}>
+          <button 
+            onClick={() => setAppointmentPage(p => Math.max(1, p - 1))}
+            disabled={appointmentPage === 1}
+            style={{
+              padding: '8px 16px',
+              background: appointmentPage === 1 ? '#555' : '#ff6600',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: appointmentPage === 1 ? 'not-allowed' : 'pointer',
+              opacity: appointmentPage === 1 ? 0.5 : 1,
+            }}
+          >
+            ← Poprzednia
+          </button>
+          <span style={{ color: '#ccc', fontSize: '14px' }}>
+            Strona <b>{appointmentPage}</b> z <b>{appointmentPagination.totalPages}</b>
+          </span>
+          <button 
+            onClick={() => setAppointmentPage(p => p + 1)}
+            disabled={appointmentPage >= appointmentPagination.totalPages}
+            style={{
+              padding: '8px 16px',
+              background: appointmentPage >= appointmentPagination.totalPages ? '#555' : '#ff6600',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: appointmentPage >= appointmentPagination.totalPages ? 'not-allowed' : 'pointer',
+              opacity: appointmentPage >= appointmentPagination.totalPages ? 0.5 : 1,
+            }}
+          >
+            Następna →
+          </button>
+        </div>
+      )}
 
       {open && (
         <div
