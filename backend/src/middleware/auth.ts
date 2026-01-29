@@ -10,6 +10,15 @@ export type AuthUser = {
 
 export type AuthRequest = Request & { user?: AuthUser };
 
+export function normalizeRole(role?: string): string {
+  const r = String(role ?? "").trim().toLowerCase();
+  if (r === "admin" || r === "administrator") return "admin";
+  if (r === "kierownik" || r === "manager") return "kierownik";
+  if (r === "mechanik" || r === "mechanic") return "mechanik";
+  if (r === "recepcja" || r === "receptionist") return "recepcja";
+  return "user";
+}
+
 export function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
@@ -22,7 +31,7 @@ export function requireAuth(req: AuthRequest, res: Response, next: NextFunction)
 
   try {
     const payload = jwt.verify(token, secret) as AuthUser;
-    req.user = payload;
+    req.user = { ...payload, rola: normalizeRole(payload.rola) };
     next();
   } catch {
     return res.status(401).json({ error: "Niepoprawny token" });

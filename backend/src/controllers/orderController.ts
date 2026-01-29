@@ -4,20 +4,28 @@ import { all, get, run } from "../db.js";
 
 const allowedStatuses = new Set(["nowe", "w_trakcie", "zakonczone", "anulowane"]);
 
+function getRole(req: AuthRequest) {
+  return String(req.user?.rola ?? "user").toLowerCase();
+}
+
 function canSeeAll(req: AuthRequest) {
-  return req.user?.rola === "admin";
+  const role = getRole(req);
+  return role === "admin" || role === "kierownik" || role === "recepcja";
 }
 
 function canEditAll(req: AuthRequest) {
-  return req.user?.rola === "admin";
+  const role = getRole(req);
+  return role === "admin" || role === "kierownik" || role === "recepcja";
 }
 
 export async function listOrders(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
+    const role = getRole(req);
     const isAdmin = canSeeAll(req);
-    const isCustomer = req.user.rola === "user";
+    const isCustomer = role === "user";
+    const isMechanic = role === "mechanik";
     const customerId = req.user.customer_id;
 
     let query = `SELECT
@@ -41,8 +49,12 @@ export async function listOrders(req: AuthRequest, res: Response) {
     if (isCustomer && customerId) {
       query += ` WHERE o.customer_id = ?`;
       params = [customerId];
+    } else if (isMechanic) {
+      // Mechanik - tylko przypisane lub utworzone przez siebie
+      query += ` WHERE o.mechanic_user_id = ? OR o.created_by_user_id = ?`;
+      params = [req.user.id, req.user.id];
     } else if (!isAdmin) {
-      // Dla non-admin non-customer - tylko jego zlecenia (created by)
+      // Pozostali nie-admini - tylko jego zlecenia (created by)
       query += ` WHERE o.created_by_user_id = ?`;
       params = [req.user.id];
     }
@@ -61,7 +73,7 @@ export async function getOrderById(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
 
     const row = await get<any>(
       `SELECT
@@ -87,11 +99,14 @@ export async function getOrderById(req: AuthRequest, res: Response) {
 
     if (!row) return res.status(404).json({ success: false, message: "Order not found" });
 
+    const role = getRole(req);
     const isAdmin = canSeeAll(req);
     const isOwner = row.created_by_user_id === req.user.id;
+    const isCustomer = role === "user" && req.user.customer_id && row.customer_id === req.user.customer_id;
+    const isMechanic = role === "mechanik" && row.mechanic_user_id === req.user.id;
 
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
+    if (!isAdmin && !isOwner && !isCustomer && !isMechanic) {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
     }
 
     return res.json({ success: true, message: "OK", data: row });
@@ -105,6 +120,11 @@ export async function createOrder(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
     const { service, opis, customer_id, vehicle_id, mechanic_user_id, start_at, end_at } = req.body ?? {};
+
+    const role = getRole(req);
+    if (role !== "admin" && role !== "kierownik" && role !== "recepcja") {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
 
     if (!service || !customer_id || !vehicle_id) {
       return res.status(400).json({
@@ -123,7 +143,11 @@ export async function createOrder(req: AuthRequest, res: Response) {
     );
     if (!vehicle) return res.status(400).json({ success: false, message: "Nie istnieje vehicle_id" });
     if (vehicle.customer_id !== Number(customer_id)) {
-      return res.status(400).json({ success: false, message: "Pojazd nie naleĹĽy do podanego klienta" });
+      return res.status(400).json({ success: false, message: "Pojazd nie należy do podanego klienta" });
+    }
+
+    if (isMechanic && mechanic_user_id != null) {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
     }
 
     if (mechanic_user_id != null) {
@@ -161,7 +185,7 @@ export async function updateOrder(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
 
     const { status, opis, mechanic_user_id, start_at, end_at } = req.body ?? {};
 
@@ -172,7 +196,7 @@ export async function updateOrder(req: AuthRequest, res: Response) {
     if (status != null && !allowedStatuses.has(String(status))) {
       return res.status(400).json({
         success: false,
-        message: "NieprawidĹ‚owy status",
+        message: "Nieprawidłowy status",
         allowed: Array.from(allowedStatuses),
       });
     }
@@ -183,9 +207,24 @@ export async function updateOrder(req: AuthRequest, res: Response) {
     );
     if (!existing) return res.status(404).json({ success: false, message: "Order not found" });
 
+    const role = getRole(req);
     const isAdmin = canEditAll(req);
     const isOwner = existing.created_by_user_id === req.user.id;
-    if (!isAdmin && !isOwner) return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
+    const isMechanic = role === "mechanik";
+
+    if (!isAdmin && !isOwner && !isMechanic) {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
+
+    if (isMechanic) {
+      const assigned = await get<{ id: number }>(
+        `SELECT id FROM orders WHERE id = ? AND mechanic_user_id = ?`,
+        [id, req.user.id]
+      );
+      if (!assigned) {
+        return res.status(403).json({ success: false, message: "Brak uprawnień" });
+      }
+    }
 
     if (mechanic_user_id != null) {
       const mech = await get<{ id: number }>(`SELECT id FROM users WHERE id = ?`, [Number(mechanic_user_id)]);

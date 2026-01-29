@@ -5,10 +5,10 @@ import { initDb } from "./dbInit.js";
 type IdRow = { id: number };
 
 async function main() {
-  console.log("đźŚ± Seeding database (50 per table)...");
+  console.log("🌱 Seeding database (50 per table)...");
   await initDb();
 
-  // ===== CLEAR (kolejnoĹ›Ä‡ waĹĽna przez FK) =====
+  // ===== CLEAR (kolejność ważna przez FK) =====
   await run(`DELETE FROM messages`);
   await run(`DELETE FROM message_threads`);
   await run(`DELETE FROM notifications`);
@@ -24,9 +24,9 @@ async function main() {
     { imie: "Admin", nazwisko: "Serwis", mail: "admin@example.com", telefon: "500000001", rola: "admin", haslo: "admin123" }
   ];
 
-  // Generuj 49 uĹĽytkownikĂłw (klienci)
+  // Generuj 49 użytkowników (klienci)
   const firstNames = ["Jan", "Ala", "Kamil", "Ola", "Piotr", "Marek", "Katarzyna", "Ewa", "Tomasz", "Anna"];
-  const lastNames = ["Kowalski", "Nowak", "WĂłjcik", "ZieliĹ„ska", "Lewandowski", "WiĹ›niewski", "KamiĹ„ska", "Kucharski", "GĂłrski", "MrĂłwka"];
+  const lastNames = ["Kowalski", "Nowak", "Wójcik", "Zielińska", "Lewandowski", "Wiśniewski", "Kamińska", "Kucharski", "Górski", "Mrówka"];
 
   for (let i = 1; i <= 49; i++) {
     const firstName = firstNames[i % firstNames.length];
@@ -41,26 +41,26 @@ async function main() {
     });
   }
 
-  // Dodaj 10 mechanikĂłw
+  // Dodaj 10 mechaników
   for (let i = 1; i <= 10; i++) {
     users.push({
       imie: `Mechanik${i}`,
       nazwisko: "Nowak",
       mail: `mechanic${i}@example.com`,
       telefon: `600000${String(i).padStart(3, "0")}`,
-      rola: "mechanic",
+      rola: "mechanik",
       haslo: "mech123"
     });
   }
 
-  // Dodaj 10 kierownikĂłw
+  // Dodaj 10 kierowników
   for (let i = 1; i <= 10; i++) {
     users.push({
       imie: `Kierownik${i}`,
       nazwisko: "Manager",
       mail: `manager${i}@example.com`,
       telefon: `610000${String(i).padStart(3, "0")}`,
-      rola: "manager",
+      rola: "kierownik",
       haslo: "mgr123"
     });
   }
@@ -72,7 +72,7 @@ async function main() {
       nazwisko: "Recepcja",
       mail: `receptionist${i}@example.com`,
       telefon: `620000${String(i).padStart(3, "0")}`,
-      rola: "receptionist",
+      rola: "recepcja",
       haslo: "rec123"
     });
   }
@@ -85,16 +85,16 @@ async function main() {
       [u.imie, u.nazwisko, u.mail, u.telefon, u.rola, hashed]
     );
   }
-  console.log(`âś… Users: ${users.length}`);
+  console.log(`✅ Users: ${users.length}`);
 
   const admin = await get<IdRow>(`SELECT id FROM users WHERE mail = ?`, ["admin@example.com"]);
   
   // Pobierz kilku mechanikami i recepcionistek
-  const allMechanics = await all<IdRow>(`SELECT id FROM users WHERE rola IN ('mechanic', 'user') LIMIT 20`);
+  const allMechanics = await all<IdRow>(`SELECT id FROM users WHERE rola IN ('mechanik', 'user') LIMIT 20`);
   const mechanics = allMechanics.map(m => m.id);
 
   // ===== CUSTOMERS (50) =====
-  const customerNames = ["Adam Nowak", "Marek WiĹ›niewski", "Katarzyna Lewandowska", "Piotr ZieliĹ„ski", "Ewa KamiĹ„ska"];
+  const customerNames = ["Adam Nowak", "Marek Wiśniewski", "Katarzyna Lewandowska", "Piotr Zieliński", "Ewa Kamińska"];
   const customerEmails = ["adam", "marek", "kasia", "piotr", "ewa"];
   
   for (let i = 1; i <= 50; i++) {
@@ -112,9 +112,9 @@ async function main() {
       [customer.name, customer.email, customer.phone, customer.notes]
     );
   }
-  console.log("âś… Customers: 50");
+  console.log("✅ Customers: 50");
 
-  // Pobierz wszystkich klientĂłw
+  // Pobierz wszystkich klientów
   const allCustomers = await all<IdRow>(`SELECT id FROM customers ORDER BY id ASC`);
   
   // ===== ASSIGN CUSTOMER_ID TO USER ROLES =====
@@ -123,7 +123,7 @@ async function main() {
   for (let i = 0; i < userRows.length && i < allCustomers.length; i++) {
     await run(`UPDATE users SET customer_id = ? WHERE id = ?`, [allCustomers[i].id, userRows[i].id]);
   }
-  console.log(`âś… Users assigned to customers (${Math.min(userRows.length, allCustomers.length)} mappings)`);
+  console.log(`✅ Users assigned to customers (${Math.min(userRows.length, allCustomers.length)} mappings)`);
 
   // ===== VEHICLES (50) =====
   const vehicleMakes = ["Toyota", "Volkswagen", "Ford", "BMW", "Audi", "Mercedes", "Honda", "Skoda", "Renault", "Peugeot"];
@@ -147,7 +147,7 @@ async function main() {
       ]
     );
   }
-  console.log("âś… Vehicles: 50");
+  console.log("✅ Vehicles: 50");
 
   const allVehicles = await all<{ id: number; customer_id: number }>(
     `SELECT id, customer_id FROM vehicles ORDER BY id ASC`
@@ -155,15 +155,15 @@ async function main() {
 
   // ===== ORDERS (50) =====
   const orderServices = [
-    "Wymiana oleju i filtrĂłw",
+    "Wymiana oleju i filtrów",
     "Diagnostyka (check engine)",
-    "Klocki + tarcze przĂłd",
+    "Klocki + tarcze przód",
     "Wymiana akumulatora",
     "Serwis klimatyzacji",
-    "Wymiana Ĺ›wiec zapĹ‚onowych",
-    "PrzeglÄ…d techniczny",
+    "Wymiana świec zapłonowych",
+    "Przegląd techniczny",
     "Naprawa zawieszenia",
-    "Wymiana klockĂłw hamulcowych"
+    "Wymiana klocków hamulcowych"
   ];
   const statuses = ["nowe", "w_trakcie", "zakonczone"];
 
@@ -181,7 +181,7 @@ async function main() {
       [
         service,
         status,
-        `${service} - porzÄ…dek nr ${i + 1}`,
+        `${service} - porządek nr ${i + 1}`,
         customer.id,
         vehicle.id,
         mechanic,
@@ -191,7 +191,7 @@ async function main() {
       ]
     );
   }
-  console.log("âś… Orders: 50");
+  console.log("✅ Orders: 50");
 
   const allOrders = await all<{ id: number; customer_id: number; vehicle_id: number }>(
     `SELECT id, customer_id, vehicle_id FROM orders ORDER BY id ASC`
@@ -220,13 +220,13 @@ async function main() {
       ]
     );
   }
-  console.log("âś… Appointments: 50");
+  console.log("✅ Appointments: 50");
 
   // ===== PARTS (50) =====
   const partNames = [
-    "Filtr oleju", "Olej silnikowy 5W30", "Klocki hamulcowe przĂłd", "Tarcze hamulcowe przĂłd",
-    "Akumulator 74Ah", "Ĺšwieca zapĹ‚onowa", "Filtr powietrza", "Filtr salonu", "PĹ‚yn chĹ‚odniczy",
-    "Pasek rozrzÄ…du", "Tarcza sprzÄ™gĹ‚a", "Komplet uszczelniacz", "PĹ‚yn hamulcowy"
+    "Filtr oleju", "Olej silnikowy 5W30", "Klocki hamulcowe przód", "Tarcze hamulcowe przód",
+    "Akumulator 74Ah", "Świeca zapłonowa", "Filtr powietrza", "Filtr salonu", "Płyn chłodniczy",
+    "Pasek rozrządu", "Tarcza sprzęgła", "Komplet uszczelniacz", "Płyn hamulcowy"
   ];
   const brands = ["Bosch", "Castrol", "ATE", "Zimmermann", "Varta", "NGK", "Hengst", "Brembo"];
 
@@ -244,11 +244,11 @@ async function main() {
         Math.floor(Math.random() * 20),
         2,
         Math.round((50 + Math.random() * 450) * 100) / 100,
-        `RegaĹ‚ ${String.fromCharCode(65 + (i % 5))}${(i % 10) + 1}`
+        `Regał ${String.fromCharCode(65 + (i % 5))}${(i % 10) + 1}`
       ]
     );
   }
-  console.log("âś… Parts: 50");
+  console.log("✅ Parts: 50");
 
   // ===== INVOICES (50) =====
   for (let i = 0; i < 50; i++) {
@@ -272,7 +272,7 @@ async function main() {
       ]
     );
   }
-  console.log("âś… Invoices: 50");
+  console.log("✅ Invoices: 50");
 
   // ===== MESSAGE THREADS (50) =====
   for (let i = 0; i < 50; i++) {
@@ -290,7 +290,7 @@ async function main() {
       [thread.title, thread.customer_id, thread.order_id, thread.created_by_user_id]
     );
   }
-  console.log("âś… Threads: 50");
+  console.log("✅ Threads: 50");
 
   const allThreads = await all<{ id: number }>(
     `SELECT id FROM message_threads ORDER BY id ASC`
@@ -298,16 +298,16 @@ async function main() {
 
   // ===== MESSAGES (50) =====
   const messageTexts = [
-    "DzieĹ„ dobry, zaczynamy serwis.",
-    "Jakie sÄ… problemy z pojazdem?",
-    "Wymieniamy czÄ™Ĺ›ci, proszÄ™ czekaÄ‡.",
-    "Diagnostyka wykazaĹ‚a...",
-    "Wszystko gotowe, proszÄ™ przyjechaÄ‡.",
+    "Dzień dobry, zaczynamy serwis.",
+    "Jakie są problemy z pojazdem?",
+    "Wymieniamy części, proszę czekać.",
+    "Diagnostyka wykazała...",
+    "Wszystko gotowe, proszę przyjechać.",
     "Pytanie dot. serwisu?",
     "Potwierdzam termin wizyty.",
-    "ProszÄ™ o informacjÄ™ o postÄ™pie.",
-    "Czy jest moĹĽliwoĹ›Ä‡ szybszego terminu?",
-    "Faktura wysĹ‚ana na maila."
+    "Proszę o informację o postępie.",
+    "Czy jest możliwość szybszego terminu?",
+    "Faktura wysłana na maila."
   ];
 
   for (let i = 0; i < 50; i++) {
@@ -323,7 +323,7 @@ async function main() {
     
     await run(`UPDATE message_threads SET updated_at = datetime('now') WHERE id = ?`, [thread.id]);
   }
-  console.log("âś… Messages: 50");
+  console.log("✅ Messages: 50");
 
   // ===== NOTIFICATIONS (50) =====
   const notificationTitles = [
@@ -332,7 +332,7 @@ async function main() {
     "Diagnostyka",
     "Magazyn",
     "Faktury",
-    "WiadomoĹ›Ä‡",
+    "Wiadomość",
     "Wizyta",
     "Status"
   ];
@@ -350,26 +350,26 @@ async function main() {
       [
         notifUsers[i].id,
         title,
-        `Powiadomienie ${i + 1}: ${title} - nowa wiadomoĹ›Ä‡ do przeczytania.`
+        `Powiadomienie ${i + 1}: ${title} - nowa wiadomość do przeczytania.`
       ]
     );
   }
-  console.log("âś… Notifications: 50");
+  console.log("✅ Notifications: 50");
 
   // ===== 1. PART CATEGORIES (10) =====
   const categories = [
     "Hamulce", "Filtry", "Oleje", "Zawieszenie", "Silnik", 
-    "Klimatyzacja", "Elektryka", "OĹ›wietlenie", "Paliwo", "Inne"
+    "Klimatyzacja", "Elektryka", "Oświetlenie", "Paliwo", "Inne"
   ];
 
   for (const cat of categories) {
     await run(
       `INSERT INTO part_categories (name, description)
        VALUES (?, ?)`,
-      [cat, `Kategoria czÄ™Ĺ›ci: ${cat}`]
+      [cat, `Kategoria części: ${cat}`]
     );
   }
-  console.log("âś… Part Categories: 10");
+  console.log("✅ Part Categories: 10");
 
   const allCategories = await all<IdRow>(`SELECT id FROM part_categories ORDER BY id ASC`);
 
@@ -377,12 +377,12 @@ async function main() {
   const services = [
     { name: "Wymiana oleju", price: 150, hours: 1 },
     { name: "Diagnostyka", price: 80, hours: 1 },
-    { name: "Wymiana klockĂłw", price: 350, hours: 2 },
+    { name: "Wymiana klocków", price: 350, hours: 2 },
     { name: "Wymiana tarcz", price: 400, hours: 2.5 },
     { name: "Wymiana akumulatora", price: 200, hours: 1 },
-    { name: "PrzeglÄ…d techniczny", price: 250, hours: 2 },
+    { name: "Przegląd techniczny", price: 250, hours: 2 },
     { name: "Serwis klimatyzacji", price: 300, hours: 2 },
-    { name: "Wymiana Ĺ›wiec", price: 120, hours: 1 },
+    { name: "Wymiana świec", price: 120, hours: 1 },
     { name: "Naprawa zawieszenia", price: 500, hours: 4 },
     { name: "Wymiana filtra powietrza", price: 80, hours: 0.5 }
   ];
@@ -391,10 +391,10 @@ async function main() {
     await run(
       `INSERT INTO service_prices (name, description, base_price, labor_hours, is_active)
        VALUES (?, ?, ?, ?, ?)`,
-      [svc.name, `UsĹ‚uga: ${svc.name}`, svc.price, svc.hours, 1]
+      [svc.name, `Usługa: ${svc.name}`, svc.price, svc.hours, 1]
     );
   }
-  console.log("âś… Service Prices: 10");
+  console.log("✅ Service Prices: 10");
 
   // ===== 3. VEHICLE HISTORY (50) =====
   for (let i = 0; i < 50; i++) {
@@ -412,20 +412,20 @@ async function main() {
         `2025-12-${String(day).padStart(2, "0")}`,
         mechanic,
         Math.round((80 + Math.random() * 500) * 100) / 100,
-        `CzÄ™Ĺ›Ä‡ ${i + 1}`,
+        `Część ${i + 1}`,
         `Notatka serwisowa nr ${i + 1}`
       ]
     );
   }
-  console.log("âś… Vehicle History: 50");
+  console.log("✅ Vehicle History: 50");
 
   // ===== 4. EMPLOYEE SCHEDULE (50) =====
-  const daysOfWeek = ["PoniedziaĹ‚ek", "Wtorek", "Ĺšroda", "Czwartek", "PiÄ…tek", "Sobota", "Niedziela"];
+  const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
 
   for (let i = 0; i < 50; i++) {
     const user = userRows[i % userRows.length];
     const day = daysOfWeek[i % daysOfWeek.length];
-    const isAvailable = i % 7 !== 6 ? 1 : 0; // Niedziela niedostÄ™pna
+    const isAvailable = i % 7 !== 6 ? 1 : 0; // Niedziela niedostępna
 
     await run(
       `INSERT INTO employee_schedule (user_id, day_of_week, start_time, end_time, is_available)
@@ -439,11 +439,11 @@ async function main() {
       ]
     );
   }
-  console.log("âś… Employee Schedule: 50");
+  console.log("✅ Employee Schedule: 50");
 
   // ===== 5. SUPPLIERS (15) =====
   const supplierNames = [
-    "Auto Parts Sp. z o.o.", "CzÄ™Ĺ›ci Samochodowe Plus", "Serwis Import",
+    "Auto Parts Sp. z o.o.", "Części Samochodowe Plus", "Serwis Import",
     "SupplyCar Polska", "Mechanic Store", "Auto Express", "Parts World",
     "Spare Parts Depot", "Car Components Ltd", "Premium Parts Center",
     "Logistics Auto", "Quality Spares", "Direct Parts Supply", "Wholesale Motors", "Trade Auto Parts"
@@ -461,7 +461,7 @@ async function main() {
         `contact${i + 1}@supplier.com`,
         `+48${String(600000000 + i * 1000000).padStart(9, "0")}`,
         `Ulica ${i + 1}`,
-        ["Warszawa", "KrakĂłw", "PoznaĹ„", "WrocĹ‚aw", "GdaĹ„sk"][i % 5],
+        ["Warszawa", "Kraków", "Poznań", "Wrocław", "Gdańsk"][i % 5],
         `${String(30000 + i * 100).padStart(5, "0")}`,
         "30 dni",
         Math.round((3 + Math.random() * 2) * 10) / 10,
@@ -469,7 +469,7 @@ async function main() {
       ]
     );
   }
-  console.log("âś… Suppliers: 15");
+  console.log("✅ Suppliers: 15");
 
   // ===== 6. RATINGS (50) =====
   for (let i = 0; i < 50; i++) {
@@ -490,7 +490,7 @@ async function main() {
       ]
     );
   }
-  console.log("âś… Ratings: 50");
+  console.log("✅ Ratings: 50");
 
   // ===== 7. EMAIL TEMPLATES (6) =====
   const emailTemplates = [
@@ -498,29 +498,29 @@ async function main() {
       name: "Potwierdzenie rezerwacji",
       subject: "Potwierdzenie Twojej wizyty",
       type: "appointment_confirmation",
-      body: "CzeĹ›Ä‡ {customer_name},\n\nTwoja wizyta zostaĹ‚a potwierdzona na dzieĹ„ {date} o godzinie {time}.\n\nPozdrawiamy,\nSerwis AutoRepair"
+      body: "Cześć {customer_name},\n\nTwoja wizyta została potwierdzona na dzień {date} o godzinie {time}.\n\nPozdrawiamy,\nSerwis AutoRepair"
     },
     {
-      name: "Faktury wysĹ‚ane",
+      name: "Faktury wysłane",
       subject: "Twoja faktura nr {invoice_number}",
       type: "invoice_sent",
-      body: "Szanowny Panie/Pani,\n\nW zaĹ‚Ä…czniku wysyĹ‚amy Pani(u) fakturÄ™ na kwotÄ™ {amount} zĹ‚.\n\nPozdrawiamy,\nAutoRepair"
+      body: "Szanowny Panie/Pani,\n\nW załączniku wysyłamy Pani(u) fakturę na kwotę {amount} zł.\n\nPozdrawiamy,\nAutoRepair"
     },
     {
       name: "Zlecenie gotowe",
       subject: "Twoje zlecenie jest gotowe",
       type: "order_ready",
-      body: "CzeĹ›Ä‡ {customer_name},\n\nTwĂłj pojazd {vehicle} jest gotowy do odbioru!\n\nPozdrawiamy,\nAutoRepair"
+      body: "Cześć {customer_name},\n\nTwój pojazd {vehicle} jest gotowy do odbioru!\n\nPozdrawiamy,\nAutoRepair"
     },
     {
       name: "Przypomnienie wizyty",
       subject: "Przypomnij sobie o zaplanowanej wizycie",
       type: "appointment_reminder",
-      body: "CzeĹ›Ä‡ {customer_name},\n\nPamiÄ™taj o wizycie jutro o godzinie {time}!\n\nPozdrawiamy,\nAutoRepair"
+      body: "Cześć {customer_name},\n\nPamiętaj o wizycie jutro o godzinie {time}!\n\nPozdrawiamy,\nAutoRepair"
     },
     {
-      name: "WiadomoĹ›Ä‡ od serwisu",
-      subject: "WiadomoĹ›Ä‡ od serwisu AutoRepair",
+      name: "Wiadomość od serwisu",
+      subject: "Wiadomość od serwisu AutoRepair",
       type: "service_message",
       body: "{message}"
     },
@@ -528,7 +528,7 @@ async function main() {
       name: "Nowy mechanik",
       subject: "Witaj w zespole AutoRepair",
       type: "welcome_employee",
-      body: "CzeĹ›Ä‡ {employee_name},\n\nWitamy CiÄ™ w naszym zespole!\n\nPozdrawiamy,\nZarzÄ…d"
+      body: "Cześć {employee_name},\n\nWitamy Cię w naszym zespole!\n\nPozdrawiamy,\nZarząd"
     }
   ];
 
@@ -539,7 +539,7 @@ async function main() {
       [tpl.name, tpl.subject, tpl.body, tpl.type, 1]
     );
   }
-  console.log("âś… Email Templates: 6");
+  console.log("✅ Email Templates: 6");
 
   // ===== 8. ANALYTICS (30 dni) =====
   for (let i = 0; i < 30; i++) {
@@ -562,13 +562,13 @@ async function main() {
       ]
     );
   }
-  console.log("âś… Analytics: 30");
+  console.log("✅ Analytics: 30");
 
-  console.log("âś¨ Database seeded successfully (50 per table)!");
+  console.log("✨ Database seeded successfully (50 per table)!");
 }
 
 main().catch((e) => {
-  console.error("âťŚ Seed failed:", e);
+  console.error("❌ Seed failed:", e);
   process.exit(1);
 });
 

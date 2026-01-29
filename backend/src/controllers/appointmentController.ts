@@ -45,7 +45,7 @@ export async function getAppointmentById(req: AuthRequest, res: Response) {
 
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) {
-      return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
+      return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
     }
 
     const row = await get(
@@ -84,16 +84,16 @@ export async function createAppointment(req: AuthRequest, res: Response) {
       });
     }
 
-    // Dla customer - musi tworzyÄ‡ dla siebie
+    // Dla customer - musi tworzyć dla siebie
     const isCustomer = req.user.rola === "user";
     if (isCustomer && customer_id && customer_id !== req.user.customer_id) {
-      return res.status(403).json({ error: "Nie moĹĽesz tworzyÄ‡ wizyt dla innych klientĂłw" });
+      return res.status(403).json({ error: "Nie możesz tworzyć wizyt dla innych klientów" });
     }
 
     if (status != null && !allowedStatuses.has(String(status))) {
       return res.status(400).json({
         success: false,
-        message: "NieprawidĹ‚owy status",
+        message: "Nieprawidłowy status",
         allowed: Array.from(allowedStatuses)
       });
     }
@@ -143,7 +143,7 @@ export async function updateAppointment(req: AuthRequest, res: Response) {
 
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) {
-      return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
+      return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
     }
 
     const { title, start_at, end_at, status, notes } = req.body ?? {};
@@ -154,7 +154,7 @@ export async function updateAppointment(req: AuthRequest, res: Response) {
     if (status != null && !allowedStatuses.has(String(status))) {
       return res.status(400).json({
         success: false,
-        message: "NieprawidĹ‚owy status",
+        message: "Nieprawidłowy status",
         allowed: Array.from(allowedStatuses)
       });
     }
@@ -204,7 +204,7 @@ export async function deleteAppointment(req: AuthRequest, res: Response) {
 
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) {
-      return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
+      return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
     }
 
     const existing = await get(`SELECT id FROM appointments WHERE id = ?`, [id]);

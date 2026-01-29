@@ -1,12 +1,33 @@
 ﻿import type { Request, Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
+import { normalizeRole } from "../middleware/auth.js";
 import { all, get, run } from "../db.js";
 
 export async function listCustomers(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
+    const role = normalizeRole(req.user.rola);
+    const isUser = role === "user";
+    const isViewer = role === "admin" || role === "kierownik" || role === "recepcja" || role === "mechanik" || isUser;
+    if (!isViewer) return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
+
     const q = String((req.query.q ?? "") as string).trim();
+
+    if (isUser) {
+      if (!req.user.customer_id) {
+        return res.json({ success: true, message: "OK", data: [] });
+      }
+
+      const row = await get(
+        `SELECT id, name, email, phone, notes, created_at
+         FROM customers
+         WHERE id = ?`,
+        [req.user.customer_id]
+      );
+      return res.json({ success: true, message: "OK", data: row ? [row] : [] });
+    }
+
     const rows = q
       ? await all(
           `SELECT id, name, email, phone, notes, created_at
@@ -31,8 +52,16 @@ export async function getCustomerById(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
+    const role = normalizeRole(req.user.rola);
+    const isViewer = role === "admin" || role === "kierownik" || role === "recepcja" || role === "mechanik" || role === "user";
+    if (!isViewer) return res.status(403).json({ success: false, message: "Brak uprawnień" });
+
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+
+    if (role === "user" && req.user.customer_id && id !== req.user.customer_id) {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
 
     const row = await get(
       `SELECT id, name, email, phone, notes, created_at
@@ -52,6 +81,11 @@ export async function getCustomerById(req: AuthRequest, res: Response) {
 export async function createCustomer(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
+
+    const role = normalizeRole(req.user.rola);
+    if (role !== "admin" && role !== "kierownik" && role !== "recepcja") {
+      return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
+    }
 
     const { name, email, phone, notes } = req.body ?? {};
     if (!name) return res.status(400).json({ success: false, message: "Brak pola: name" });
@@ -79,8 +113,13 @@ export async function updateCustomer(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
+    const role = normalizeRole(req.user.rola);
+    if (role !== "admin" && role !== "kierownik" && role !== "recepcja") {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
+
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
 
     const { name, email, phone, notes } = req.body ?? {};
     if (name == null && email == null && phone == null && notes == null) {
@@ -131,8 +170,13 @@ export async function deleteCustomer(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
+    const role = normalizeRole(req.user.rola);
+    if (role !== "admin" && role !== "kierownik") {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
+
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
 
     const existing = await get<{ id: number }>(`SELECT id FROM customers WHERE id = ?`, [id]);
     if (!existing) return res.status(404).json({ success: false, message: "Customer not found" });

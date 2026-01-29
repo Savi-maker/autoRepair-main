@@ -2,6 +2,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { get, run } from "../db.js";
+import { normalizeRole } from "../middleware/auth.js";
 
 type UserRow = {
   id: number;
@@ -18,8 +19,9 @@ function signToken(user: { id: number; mail: string; rola: string; customer_id?:
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error("Brak JWT_SECRET w .env");
 
-  const payload: any = { id: user.id, mail: user.mail, rola: user.rola };
-  if (user.rola === "user" && user.customer_id) {
+  const role = normalizeRole(user.rola);
+  const payload: any = { id: user.id, mail: user.mail, rola: role };
+  if (role === "user" && user.customer_id) {
     payload.customer_id = user.customer_id;
   }
   return jwt.sign(payload, secret, { expiresIn: "7d" });
@@ -34,7 +36,7 @@ export async function register(req: Request, res: Response) {
 
   const existing = await get<UserRow>(`SELECT * FROM users WHERE mail = ?`, [mail]);
   if (existing) {
-    return res.status(409).json({ success: false, message: "UĹĽytkownik o takim mailu juĹĽ istnieje" });
+    return res.status(409).json({ success: false, message: "Użytkownik o takim mailu już istnieje" });
   }
 
   const hashed = await bcrypt.hash(String(haslo), 10);
@@ -66,22 +68,23 @@ export async function login(req: Request, res: Response) {
 
   const user = await get<UserRow>(`SELECT * FROM users WHERE mail = ?`, [mail]);
   if (!user) {
-    return res.status(401).json({ success: false, message: "NieprawidĹ‚owy mail lub hasĹ‚o" });
+    return res.status(401).json({ success: false, message: "Nieprawidłowy mail lub hasło" });
   }
 
   const ok = await bcrypt.compare(String(haslo), user.haslo);
   if (!ok) {
-    return res.status(401).json({ success: false, message: "NieprawidĹ‚owy mail lub hasĹ‚o" });
+    return res.status(401).json({ success: false, message: "Nieprawidłowy mail lub hasło" });
   }
 
-  const token = signToken({ id: user.id, mail: user.mail, rola: user.rola, customer_id: user.customer_id });
+  const role = normalizeRole(user.rola);
+  const token = signToken({ id: user.id, mail: user.mail, rola: role, customer_id: user.customer_id });
 
   return res.json({
     success: true,
     message: "Zalogowano",
     data: {
       token,
-      user: { id: user.id, mail: user.mail, rola: user.rola, imie: user.imie, nazwisko: user.nazwisko }
+      user: { id: user.id, mail: user.mail, rola: role, imie: user.imie, nazwisko: user.nazwisko }
     }
   });
 }

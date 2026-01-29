@@ -13,7 +13,7 @@ export async function listThreads(req: AuthRequest, res: Response) {
     const customerId = req.user.customer_id;
     const userId = req.user.id;
 
-    // Dla customer - tylko jego wÄ…tki
+    // Dla customer - tylko jego wątki
     let whereClause = "";
     let params: any[] = [];
 
@@ -177,7 +177,7 @@ export async function listMessages(req: AuthRequest, res: Response) {
 
     const threadId = Number(req.params.threadId);
     if (!Number.isFinite(threadId)) {
-      return res.status(400).json({ success: false, message: "NieprawidĹ‚owe threadId" });
+      return res.status(400).json({ success: false, message: "Nieprawidłowe threadId" });
     }
 
     const thread = await get<{ id: number }>(`SELECT id FROM message_threads WHERE id = ?`, [threadId]);

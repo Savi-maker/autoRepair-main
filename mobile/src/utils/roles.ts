@@ -1,4 +1,12 @@
-﻿export type UserRole = 'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 'user';
+﻿export type UserRole =
+  | 'admin'
+  | 'kierownik'
+  | 'mechanik'
+  | 'recepcja'
+  | 'user'
+  | 'manager'
+  | 'mechanic'
+  | 'receptionist';
 
 export interface RolePermissions {
   canViewAdminPanel: boolean;
@@ -32,7 +40,7 @@ export interface RolePermissions {
   canManageEmailTemplates: boolean;
 }
 
-const rolePermissions: Record<UserRole, RolePermissions> = {
+const rolePermissions: Record<'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 'user', RolePermissions> = {
   admin: {
     canViewAdminPanel: true,
     canManageUsers: true,
@@ -105,7 +113,7 @@ const rolePermissions: Record<UserRole, RolePermissions> = {
     canManageVehicles: false,
     canViewVehicles: true,
     canCreateOrders: false,
-    canManageOrders: false,
+    canManageOrders: true,
     canViewOrders: true,
     canManageAppointments: false,
     canViewAppointments: true,
@@ -137,7 +145,7 @@ const rolePermissions: Record<UserRole, RolePermissions> = {
     canManageVehicles: true,
     canViewVehicles: true,
     canCreateOrders: true,
-    canManageOrders: false,
+    canManageOrders: true,
     canViewOrders: true,
     canManageAppointments: true,
     canViewAppointments: true,
@@ -195,11 +203,20 @@ const rolePermissions: Record<UserRole, RolePermissions> = {
 };
 
 export function getPermissions(role: UserRole): RolePermissions {
-  return rolePermissions[role] || rolePermissions.user;
+  return rolePermissions[normalizeRole(role) as keyof typeof rolePermissions] || rolePermissions.user;
 }
 
 export function hasPermission(role: UserRole, permission: keyof RolePermissions): boolean {
   const perms = getPermissions(role);
   return perms[permission];
+}
+
+export function normalizeRole(role?: string): 'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 'user' {
+  const r = String(role ?? '').trim().toLowerCase();
+  if (r === 'admin' || r === 'administrator') return 'admin';
+  if (r === 'kierownik' || r === 'manager') return 'kierownik';
+  if (r === 'mechanik' || r === 'mechanic') return 'mechanik';
+  if (r === 'recepcja' || r === 'receptionist') return 'recepcja';
+  return 'user';
 }
 

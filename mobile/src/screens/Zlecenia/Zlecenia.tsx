@@ -39,6 +39,8 @@ function mapUiToBackendStatus(s: UiOrderStatus) {
 export default function Zlecenia() {
   const navigate = useNavigate()
   const { hasPermission } = useAuth()
+  const canCreateOrders = hasPermission('canCreateOrders')
+  const canManageOrders = hasPermission('canManageOrders')
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<FilterStatus>('wszystkie')
 
@@ -288,6 +290,7 @@ export default function Zlecenia() {
 
   const submitDetailsSave = async () => {
     if (!selectedOrder) return
+    if (!canManageOrders) return
     setDetailsError(null)
     setDetailsSaving(true)
 
@@ -341,7 +344,7 @@ export default function Zlecenia() {
             <option value="zakończone">Zakończone</option>
             <option value="anulowane">Anulowane</option>
           </select>
-          {hasPermission('canManageOrders') && (
+          {canCreateOrders && (
             <AppButton variant="primary" onClick={() => setOpen(true)}>
               Dodaj nowe zlecenie
             </AppButton>
@@ -735,7 +738,12 @@ export default function Zlecenia() {
                 <div className="meta" style={{ marginBottom: 6 }}>
                   <b>Status</b>
                 </div>
-                <select className="z-select" value={editStatus} onChange={(e) => setEditStatus(e.target.value as any)}>
+                <select
+                  className="z-select"
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as any)}
+                  disabled={!canManageOrders}
+                >
                   <option value="oczekujące">Oczekujące</option>
                   <option value="w trakcie">W trakcie</option>
                   <option value="zakończone">Zakończone</option>
@@ -751,12 +759,13 @@ export default function Zlecenia() {
                   value={editOpis}
                   onChange={(e) => setEditOpis(e.target.value)}
                   rows={5}
+                  disabled={!canManageOrders}
                   style={{
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: 10,
                     border: '1px solid rgba(255,102,0,0.18)',
-                    background: '#0f0f0f',
+                    background: !canManageOrders ? '#161616' : '#0f0f0f',
                     color: '#fff',
                     resize: 'vertical',
                   }}
@@ -770,9 +779,11 @@ export default function Zlecenia() {
               <button className="z-btn-secondary btn-secondary" onClick={closeDetails} disabled={detailsSaving}>
                 Anuluj
               </button>
-              <button className="z-btn-primary" onClick={submitDetailsSave} disabled={detailsSaving}>
-                {detailsSaving ? 'Zapisywanie…' : 'Zapisz zmiany'}
-              </button>
+              {canManageOrders && (
+                <button className="z-btn-primary" onClick={submitDetailsSave} disabled={detailsSaving}>
+                  {detailsSaving ? 'Zapisywanie…' : 'Zapisz zmiany'}
+                </button>
+              )}
             </div>
           </div>
         </div>

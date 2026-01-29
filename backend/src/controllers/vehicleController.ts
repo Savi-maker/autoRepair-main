@@ -1,10 +1,15 @@
 ﻿import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
+import { normalizeRole } from "../middleware/auth.js";
 import { all, get, run } from "../db.js";
 
 export async function listVehicles(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
+
+    const role = normalizeRole(req.user.rola);
+    const isViewer = role === "admin" || role === "kierownik" || role === "recepcja" || role === "mechanik" || role === "user";
+    if (!isViewer) return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
 
     const q = String((req.query.q ?? "") as string).trim();
     const isCustomer = req.user.rola === "user";
@@ -47,8 +52,12 @@ export async function getVehicleById(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
+    const role = normalizeRole(req.user.rola);
+    const isViewer = role === "admin" || role === "kierownik" || role === "recepcja" || role === "mechanik" || role === "user";
+    if (!isViewer) return res.status(403).json({ success: false, message: "Brak uprawnień" });
+
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
 
     const row = await get(
       `SELECT
@@ -62,6 +71,10 @@ export async function getVehicleById(req: AuthRequest, res: Response) {
 
     if (!row) return res.status(404).json({ success: false, message: "Vehicle not found" });
 
+    if (role === "user" && req.user.customer_id && row?.customer_id !== req.user.customer_id) {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
+
     return res.json({ success: true, message: "OK", data: row });
   } catch (e: any) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
@@ -71,6 +84,11 @@ export async function getVehicleById(req: AuthRequest, res: Response) {
 export async function createVehicle(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
+
+    const role = normalizeRole(req.user.rola);
+    if (role !== "admin" && role !== "kierownik" && role !== "recepcja") {
+      return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
+    }
 
     const { customer_id, make, model, year, plate, vin, last_service_at } = req.body ?? {};
 
@@ -85,7 +103,7 @@ export async function createVehicle(req: AuthRequest, res: Response) {
     if (!cust) return res.status(400).json({ success: false, message: "Nie istnieje customer_id" });
 
     const existingPlate = await get<{ id: number }>(`SELECT id FROM vehicles WHERE plate = ?`, [String(plate)]);
-    if (existingPlate) return res.status(409).json({ success: false, message: "Pojazd o takiej rejestracji juĹĽ istnieje" });
+    if (existingPlate) return res.status(409).json({ success: false, message: "Pojazd o takiej rejestracji już istnieje" });
 
     const result = await run(
       `INSERT INTO vehicles (customer_id, make, model, year, plate, vin, last_service_at)
@@ -117,8 +135,13 @@ export async function updateVehicle(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
+    const role = normalizeRole(req.user.rola);
+    if (role !== "admin" && role !== "kierownik" && role !== "recepcja") {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
+
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
 
     const { customer_id, make, model, year, plate, vin, last_service_at } = req.body ?? {};
 
@@ -144,7 +167,7 @@ export async function updateVehicle(req: AuthRequest, res: Response) {
 
     if (plate != null) {
       const dup = await get<{ id: number }>(`SELECT id FROM vehicles WHERE plate = ? AND id != ?`, [String(plate), id]);
-      if (dup) return res.status(409).json({ success: false, message: "Pojazd o takiej rejestracji juĹĽ istnieje" });
+      if (dup) return res.status(409).json({ success: false, message: "Pojazd o takiej rejestracji już istnieje" });
     }
 
     const fields: string[] = [];
@@ -189,7 +212,7 @@ export async function updateVehicle(req: AuthRequest, res: Response) {
   } catch (e: any) {
     const msg = String(e?.message || "DB error");
     if (msg.includes("UNIQUE constraint failed: vehicles.plate")) {
-      return res.status(409).json({ success: false, message: "Pojazd o takiej rejestracji juĹĽ istnieje" });
+      return res.status(409).json({ success: false, message: "Pojazd o takiej rejestracji już istnieje" });
     }
     return res.status(500).json({ success: false, message: msg });
   }
@@ -199,8 +222,13 @@ export async function deleteVehicle(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
+    const role = normalizeRole(req.user.rola);
+    if (role !== "admin" && role !== "kierownik") {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
+
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
 
     const existing = await get<{ id: number }>(`SELECT id FROM vehicles WHERE id = ?`, [id]);
     if (!existing) return res.status(404).json({ success: false, message: "Vehicle not found" });

@@ -23,8 +23,9 @@ const ROLE_LABEL: Record<UserRole, string> = {
 function toRole(v: any): UserRole {
   const r = String(v ?? '').toLowerCase()
   if (r === 'admin' || r === 'administrator') return 'admin'
-  if (r === 'kierownik') return 'kierownik'
-  if (r === 'mechanik') return 'mechanik'
+  if (r === 'kierownik' || r === 'manager') return 'kierownik'
+  if (r === 'mechanik' || r === 'mechanic') return 'mechanik'
+  if (r === 'recepcja' || r === 'receptionist') return 'recepcja'
   return 'recepcja'
 }
 
