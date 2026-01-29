@@ -41,9 +41,6 @@ export async function initDb() {
     )
   `);
 
-  /* =========================
-     VEHICLES (pojazdy)
-     ========================= */
   await run(`
     CREATE TABLE IF NOT EXISTS vehicles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,9 +56,6 @@ export async function initDb() {
     )
   `);
 
-  /* =========================
-     ORDERS (zlecenia)
-     ========================= */
   await run(`
     CREATE TABLE IF NOT EXISTS orders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -82,9 +76,6 @@ export async function initDb() {
     )
   `);
 
-  /* =========================
-     APPOINTMENTS (kalendarz)
-     ========================= */
   await run(`
     CREATE TABLE IF NOT EXISTS appointments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,9 +94,6 @@ export async function initDb() {
     )
   `);
 
-  /* =========================
-     1. PART CATEGORIES (Kategorie części)
-     ========================= */
   await run(`
     CREATE TABLE IF NOT EXISTS part_categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -115,9 +103,6 @@ export async function initDb() {
     )
   `);
 
-  /* =========================
-     PARTS (magazyn)
-     ========================= */
   await run(`DROP TABLE IF EXISTS parts`);
   await run(`
     CREATE TABLE IF NOT EXISTS parts (
@@ -135,9 +120,6 @@ export async function initDb() {
     )
   `);
 
-  /* =========================
-     INVOICES (faktury)
-     ========================= */
   await run(`
     CREATE TABLE IF NOT EXISTS invoices (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -155,9 +137,6 @@ export async function initDb() {
     )
   `);
 
-  /* =========================
-     MESSAGES (komunikacja)
-     ========================= */
   await run(`
     CREATE TABLE IF NOT EXISTS message_threads (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -187,9 +166,6 @@ export async function initDb() {
     )
   `);
 
-  /* =========================
-     NOTIFICATIONS
-     ========================= */
   await run(`
     CREATE TABLE IF NOT EXISTS notifications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -202,17 +178,11 @@ export async function initDb() {
     )
   `);
 
-  /* =========================
-     INDEXES
-     ========================= */
   await run(`CREATE INDEX IF NOT EXISTS idx_users_mail ON users(mail);`);
   await run(`CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id);`);
   await run(`CREATE INDEX IF NOT EXISTS idx_orders_vehicle ON orders(vehicle_id);`);
   await run(`CREATE INDEX IF NOT EXISTS idx_appointments_start ON appointments(start_at);`);
 
-  /* =========================
-     2. SERVICE PRICES (Cennik usług)
-     ========================= */
   await run(`DROP TABLE IF EXISTS service_prices`);
   await run(`
     CREATE TABLE IF NOT EXISTS service_prices (
@@ -226,9 +196,6 @@ export async function initDb() {
     )
   `);
 
-  /* =========================
-     3. VEHICLE HISTORY (Historia pojazdu)
-     ========================= */
   await run(`DROP TABLE IF EXISTS vehicle_history`);
   await run(`
     CREATE TABLE IF NOT EXISTS vehicle_history (
@@ -247,9 +214,6 @@ export async function initDb() {
     )
   `);
 
-  /* =========================
-     4. EMPLOYEE SCHEDULE (Harmonogram pracowników)
-     ========================= */
   await run(`DROP TABLE IF EXISTS employee_schedule`);
   await run(`
     CREATE TABLE IF NOT EXISTS employee_schedule (
@@ -264,9 +228,6 @@ export async function initDb() {
     )
   `);
 
-  /* =========================
-     5. SUPPLIERS (Dostawcy)
-     ========================= */
   await run(`DROP TABLE IF EXISTS suppliers`);
   await run(`
     CREATE TABLE IF NOT EXISTS suppliers (
@@ -285,9 +246,6 @@ export async function initDb() {
     )
   `);
 
-  /* =========================
-     6. RATINGS (Opinie i ratingi)
-     ========================= */
   await run(`DROP TABLE IF EXISTS ratings`);
   await run(`
     CREATE TABLE IF NOT EXISTS ratings (
@@ -305,9 +263,6 @@ export async function initDb() {
     )
   `);
 
-  /* =========================
-     7. EMAIL TEMPLATES (Szablony wiadomości)
-     ========================= */
   await run(`DROP TABLE IF EXISTS email_templates`);
   await run(`
     CREATE TABLE IF NOT EXISTS email_templates (
@@ -321,9 +276,6 @@ export async function initDb() {
     )
   `);
 
-  /* =========================
-     8. ANALYTICS (Analityka i raporty)
-     ========================= */
   await run(`DROP TABLE IF EXISTS analytics`);
   await run(`
     CREATE TABLE IF NOT EXISTS analytics (

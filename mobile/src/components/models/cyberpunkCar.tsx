@@ -29,7 +29,7 @@ export function CyberpunkCar(props: any) {
         mat.needsUpdate = true
       }
     } catch (e) {
-      // ignore
+
     }
   }, [materials])
 

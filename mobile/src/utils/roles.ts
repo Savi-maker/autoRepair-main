@@ -27,7 +27,7 @@ export interface RolePermissions {
   canManageMessages: boolean;
   canViewMessages: boolean;
   canViewAiHelper: boolean;
-  // Nowe uprawnienia dla 8 features
+
   canViewAnalytics: boolean;
   canManageServicePrices: boolean;
   canViewServicePrices: boolean;
@@ -60,7 +60,7 @@ const rolePermissions: Record<'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 
     canManageMessages: true,
     canViewMessages: true,
     canViewAiHelper: true,
-    // Nowe uprawnienia
+
     canViewAnalytics: true,
     canManageServicePrices: true,
     canViewServicePrices: true,
@@ -73,7 +73,7 @@ const rolePermissions: Record<'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 
     canManageEmailTemplates: true,
   },
   kierownik: {
-    // Kierownik = Manager - full access to operations
+
     canViewAdminPanel: false,
     canManageUsers: false,
     canManageCustomers: true,
@@ -92,7 +92,7 @@ const rolePermissions: Record<'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 
     canManageMessages: true,
     canViewMessages: true,
     canViewAiHelper: true,
-    // Nowe uprawnienia
+
     canViewAnalytics: true,
     canManageServicePrices: false,
     canViewServicePrices: true,
@@ -105,7 +105,7 @@ const rolePermissions: Record<'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 
     canManageEmailTemplates: false,
   },
   mechanik: {
-    // Mechanik = Mechanic - can view orders and appointments
+
     canViewAdminPanel: false,
     canManageUsers: false,
     canManageCustomers: false,
@@ -124,7 +124,7 @@ const rolePermissions: Record<'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 
     canManageMessages: true,
     canViewMessages: true,
     canViewAiHelper: false,
-    // Nowe uprawnienia
+
     canViewAnalytics: false,
     canManageServicePrices: false,
     canViewServicePrices: true,
@@ -137,7 +137,7 @@ const rolePermissions: Record<'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 
     canManageEmailTemplates: false,
   },
   recepcja: {
-    // Recepcja = Reception - can manage customers and appointments
+
     canViewAdminPanel: false,
     canManageUsers: false,
     canManageCustomers: true,
@@ -156,7 +156,7 @@ const rolePermissions: Record<'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 
     canManageMessages: true,
     canViewMessages: true,
     canViewAiHelper: false,
-    // Nowe uprawnienia
+
     canViewAnalytics: false,
     canManageServicePrices: true,
     canViewServicePrices: true,
@@ -169,7 +169,7 @@ const rolePermissions: Record<'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 
     canManageEmailTemplates: false,
   },
   user: {
-    // Regular user (customer) - can only see and manage own data
+
     canViewAdminPanel: false,
     canManageUsers: false,
     canManageCustomers: false,
@@ -188,7 +188,7 @@ const rolePermissions: Record<'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 
     canManageMessages: false,
     canViewMessages: true,          // Can see only own messages
     canViewAiHelper: true,          // Can use AI helper
-    // Nowe uprawnienia
+
     canViewAnalytics: false,
     canManageServicePrices: false,
     canViewServicePrices: true,     // Can see available services

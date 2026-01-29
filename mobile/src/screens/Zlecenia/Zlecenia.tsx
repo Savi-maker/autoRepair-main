@@ -69,12 +69,12 @@ export default function Zlecenia() {
   const [editStatus, setEditStatus] = useState<UiOrderStatus>('oczekujące')
   const [editOpis, setEditOpis] = useState('')
 
-  // Lista prawidłowych części silnika V8 (nazwy węzłów z hierarchii GLTF)
+
   const ENGINE_PARTS_MAP: Record<string, string> = {
-    // Głowice
+
     "Head_0": 'Głowica silnika',
     "Heads": 'Głowica silnika',
-    // Kolektory i dolot
+
     "Intake.4_1": 'Kolektor dolotowy',
     "Intake_20": 'Kolektor dolotowy',
     "Intake.3_27": 'Kolektor dolotowy',
@@ -82,14 +82,14 @@ export default function Zlecenia() {
     "Filter": 'Filtr powietrza',
     "Intake.2_34": 'Przepustnica',
     "Throttle_body": 'Przepustnica',
-    // Układ olejowy
+
     "Oil pan_2": 'Misa olejowa',
     "Oil pan.3_30": 'Misa olejowa',
     "Oil pan.4_31": 'Misa olejowa',
     "Oil pan.2_32": 'Misa olejowa',
     "Dip stick_5": 'Bagnet oleju',
     "Dipstick": 'Bagnet oleju',
-    // Blok i osprzęt
+
     "Block_3": 'Blok silnika',
     "Bolts_4": 'Śruby mocujące',
     "Valve covers.2_6": 'Pokrywa zaworów',
@@ -103,14 +103,14 @@ export default function Zlecenia() {
     "Belt_11": 'Pasek napędowy',
     "Alternator.2_12": 'Alternator',
     "Alternator_13": 'Alternator',
-    // Zapłon
+
     "Spark plugs_14": 'Świece zapłonowe',
     "Spark_plugs": 'Świece zapłonowe',
     "Distributor.4_15": 'Przewody zapłonowe',
     "Distributor.3_16": 'Przewody zapłonowe',
     "Distributor.2_17": 'Przewody zapłonowe',
     "Ignition_wires": 'Przewody zapłonowe',
-    // Wydech
+
     "Headers.3_19": 'Kolektor wydechowy',
     "Headers_23": 'Kolektor wydechowy',
     "Headers.2_26": 'Kolektor wydechowy',
@@ -654,7 +654,7 @@ export default function Zlecenia() {
                     position={[0, -0.2, 0]} 
                     rotation={[Math.PI / 2, 0, 0]}
                     onPartsLoaded={setEnginePartsRaw}
-                    // Przekazujemy przefiltrowaną listę technicznych ID
+
                     highlightedPart={getTechnicalParts(activeLabel)}
                   />
                 </Stage>

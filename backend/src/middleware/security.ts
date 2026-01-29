@@ -10,7 +10,7 @@ type AuthPayload = {
   customer_id?: number;
 };
 
-// Funkcja do normalizacji roli
+
 function normalizeRole(role?: string): string {
   const r = String(role ?? "").trim().toLowerCase();
   if (r === "admin" || r === "administrator") return "admin";
@@ -20,7 +20,7 @@ function normalizeRole(role?: string): string {
   return "user";
 }
 
-// Sprawdzenie czy request jest od admina
+
 function isAdminRequest(req: Request): boolean {
   try {
     const header = req.headers.authorization;

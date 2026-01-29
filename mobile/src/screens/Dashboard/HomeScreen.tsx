@@ -69,7 +69,7 @@ const Dashboard: React.FC = () => {
   const { hasPermission } = useAuth()
   const [loadingLogout, setLoadingLogout] = useState(false)
 
-  // DATA STATE
+
   const [loadingData, setLoadingData] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -101,7 +101,7 @@ const Dashboard: React.FC = () => {
     { path: '/admin/uzytkownicy', label: '👑 Admin', permission: 'canViewAdminPanel' as any },
   ]
 
-  // Filter menu items based on permissions
+
   const filteredMenuItems = menuItems.filter(
     (item) => !item.permission || hasPermission(item.permission)
   )
@@ -167,7 +167,7 @@ const Dashboard: React.FC = () => {
       }
     }
 
-    // jeśli backend nie zwraca nazwy pojazdu, to wyświetlamy ID (później można zrobić join na backendzie)
+
     const vehicleLabel = first?.vehicle_label || (first?.vehicle_id ? `Pojazd #${first.vehicle_id}` : '—')
     const serviceLabel = first?.service || first?.title || 'Wizyta'
     const mechanicLabel = first?.mechanic_name || (first?.mechanic_user_id ? `Mechanik #${first.mechanic_user_id}` : '—')
@@ -244,7 +244,7 @@ const Dashboard: React.FC = () => {
   const activity: ActivityItem[] = useMemo(() => {
     const items: { tsIso: string; item: ActivityItem }[] = []
 
-    // ostatnie zlecenia
+
     ;(orders || [])
       .slice()
       .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
@@ -263,7 +263,7 @@ const Dashboard: React.FC = () => {
         })
       })
 
-    // braki magazynowe
+
     ;(lowStock || []).slice(0, 1).forEach((p) => {
       const tsIso = p.created_at || new Date().toISOString()
       items.push({
@@ -278,7 +278,7 @@ const Dashboard: React.FC = () => {
       })
     })
 
-    // faktury
+
     ;(invoices || [])
       .slice()
       .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
@@ -297,7 +297,7 @@ const Dashboard: React.FC = () => {
         })
       })
 
-    // wizyty
+
     ;(appointments || [])
       .slice()
       .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
@@ -316,7 +316,7 @@ const Dashboard: React.FC = () => {
         })
       })
 
-    // wątki wiadomości
+
     ;(threads || [])
       .slice()
       .sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime())
@@ -335,7 +335,7 @@ const Dashboard: React.FC = () => {
         })
       })
 
-    // powiadomienia (nieprzeczytane)
+
     const unread = (notifications || []).filter((n) => !n.read_at)
     if (unread.length) {
       items.push({

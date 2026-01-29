@@ -23,7 +23,7 @@ export async function listVehicles(req: AuthRequest, res: Response) {
 
     let params: any[] = [];
 
-    // Dla customer - tylko jego pojazdy
+
     if (isCustomer && customerId) {
       query += ` WHERE v.customer_id = ?`;
       params = [customerId];

@@ -158,7 +158,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<Api
     try {
       json = text ? JSON.parse(text) : null;
     } catch (e) {
-      // response is not valid JSON (e.g. HTML error page); keep text for diagnostics
+
       json = null;
     }
 
@@ -173,7 +173,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<Api
 
     if (json && typeof json.success === "boolean") return json as ApiResponse<T>;
 
-    // if response was successful but not JSON, return the text as data for debugging
+
     if (!json && text) return { success: true, message: "OK", data: (text as unknown) as T };
 
     return { success: true, message: "OK", data: json as T };

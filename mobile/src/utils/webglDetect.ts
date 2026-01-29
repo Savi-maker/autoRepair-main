@@ -1,6 +1,3 @@
-/**
- * Safely check if WebGL is available in current environment
- */
 export function canUseWebGL(): boolean {
   try {
     const canvas = document.createElement('canvas')

@@ -45,16 +45,16 @@ export async function listOrders(req: AuthRequest, res: Response) {
 
     let params: any[] = [];
 
-    // Dla customer - tylko jego zlecenia
+
     if (isCustomer && customerId) {
       query += ` WHERE o.customer_id = ?`;
       params = [customerId];
     } else if (isMechanic) {
-      // Mechanik - tylko przypisane lub utworzone przez siebie
+
       query += ` WHERE o.mechanic_user_id = ? OR o.created_by_user_id = ?`;
       params = [req.user.id, req.user.id];
     } else if (!isAdmin) {
-      // Pozostali nie-admini - tylko jego zlecenia (created by)
+
       query += ` WHERE o.created_by_user_id = ?`;
       params = [req.user.id];
     }
@@ -133,7 +133,7 @@ export async function createOrder(req: AuthRequest, res: Response) {
       });
     }
 
-    // walidacja FK (czy istnieje customer i vehicle)
+
     const customer = await get<{ id: number }>(`SELECT id FROM customers WHERE id = ?`, [Number(customer_id)]);
     if (!customer) return res.status(400).json({ success: false, message: "Nie istnieje customer_id" });
 

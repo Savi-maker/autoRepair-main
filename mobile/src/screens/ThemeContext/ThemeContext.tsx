@@ -12,12 +12,12 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export const ThemeProvider: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    // Załaduj motyw z localStorage
+
     const saved = localStorage.getItem('theme') as 'light' | 'dark' | null
     return saved || 'dark'
   })
 
-  // Zapisz motyw do localStorage i zaaplikuj do DOM
+
   useEffect(() => {
     localStorage.setItem('theme', theme)
     document.documentElement.setAttribute('data-theme', theme)

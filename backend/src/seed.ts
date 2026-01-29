@@ -8,7 +8,7 @@ async function main() {
   console.log("🌱 Seeding database (50 per table)...");
   await initDb();
 
-  // ===== CLEAR (kolejność ważna przez FK) =====
+
   await run(`DELETE FROM messages`);
   await run(`DELETE FROM message_threads`);
   await run(`DELETE FROM notifications`);
@@ -19,12 +19,12 @@ async function main() {
   await run(`DELETE FROM customers`);
   await run(`DELETE FROM users`);
 
-  // ===== USERS (1 admin + 49 users + 10 mechanics + 10 managers + 10 receptionists = 80) =====
+
   const users = [
     { imie: "Admin", nazwisko: "Serwis", mail: "admin@example.com", telefon: "500000001", rola: "admin", haslo: "admin123" }
   ];
 
-  // Generuj 49 użytkowników (klienci)
+
   const firstNames = ["Jan", "Ala", "Kamil", "Ola", "Piotr", "Marek", "Katarzyna", "Ewa", "Tomasz", "Anna"];
   const lastNames = ["Kowalski", "Nowak", "Wójcik", "Zielińska", "Lewandowski", "Wiśniewski", "Kamińska", "Kucharski", "Górski", "Mrówka"];
 
@@ -41,7 +41,7 @@ async function main() {
     });
   }
 
-  // Dodaj 10 mechaników
+
   for (let i = 1; i <= 10; i++) {
     users.push({
       imie: `Mechanik${i}`,
@@ -53,7 +53,7 @@ async function main() {
     });
   }
 
-  // Dodaj 10 kierowników
+
   for (let i = 1; i <= 10; i++) {
     users.push({
       imie: `Kierownik${i}`,
@@ -65,7 +65,7 @@ async function main() {
     });
   }
 
-  // Dodaj 10 recepcionistek
+
   for (let i = 1; i <= 10; i++) {
     users.push({
       imie: `Recepcjonistka${i}`,
@@ -89,11 +89,11 @@ async function main() {
 
   const admin = await get<IdRow>(`SELECT id FROM users WHERE mail = ?`, ["admin@example.com"]);
   
-  // Pobierz kilku mechanikami i recepcionistek
+
   const allMechanics = await all<IdRow>(`SELECT id FROM users WHERE rola IN ('mechanik', 'user') LIMIT 20`);
   const mechanics = allMechanics.map(m => m.id);
 
-  // ===== CUSTOMERS (50) =====
+
   const customerNames = ["Adam Nowak", "Marek Wiśniewski", "Katarzyna Lewandowska", "Piotr Zieliński", "Ewa Kamińska"];
   const customerEmails = ["adam", "marek", "kasia", "piotr", "ewa"];
   
@@ -114,10 +114,10 @@ async function main() {
   }
   console.log("✅ Customers: 50");
 
-  // Pobierz wszystkich klientów
+
   const allCustomers = await all<IdRow>(`SELECT id FROM customers ORDER BY id ASC`);
   
-  // ===== ASSIGN CUSTOMER_ID TO USER ROLES =====
+
   const userRows = await all<IdRow>(`SELECT id FROM users WHERE rola = 'user' ORDER BY id ASC`);
   
   for (let i = 0; i < userRows.length && i < allCustomers.length; i++) {
@@ -125,7 +125,7 @@ async function main() {
   }
   console.log(`✅ Users assigned to customers (${Math.min(userRows.length, allCustomers.length)} mappings)`);
 
-  // ===== VEHICLES (50) =====
+
   const vehicleMakes = ["Toyota", "Volkswagen", "Ford", "BMW", "Audi", "Mercedes", "Honda", "Skoda", "Renault", "Peugeot"];
   const vehicleModels = ["Corolla", "Golf", "Transit", "3", "A4", "C-Class", "Civic", "Octavia", "Clio", "308"];
   
@@ -153,7 +153,7 @@ async function main() {
     `SELECT id, customer_id FROM vehicles ORDER BY id ASC`
   );
 
-  // ===== ORDERS (50) =====
+
   const orderServices = [
     "Wymiana oleju i filtrów",
     "Diagnostyka (check engine)",
@@ -197,7 +197,7 @@ async function main() {
     `SELECT id, customer_id, vehicle_id FROM orders ORDER BY id ASC`
   );
 
-  // ===== APPOINTMENTS (50) =====
+
   const appointmentStatuses = ["zaplanowana", "zakonczona", "anulowana"];
 
   for (let i = 0; i < 50; i++) {
@@ -222,7 +222,7 @@ async function main() {
   }
   console.log("✅ Appointments: 50");
 
-  // ===== PARTS (50) =====
+
   const partNames = [
     "Filtr oleju", "Olej silnikowy 5W30", "Klocki hamulcowe przód", "Tarcze hamulcowe przód",
     "Akumulator 74Ah", "Świeca zapłonowa", "Filtr powietrza", "Filtr salonu", "Płyn chłodniczy",
@@ -250,7 +250,7 @@ async function main() {
   }
   console.log("✅ Parts: 50");
 
-  // ===== INVOICES (50) =====
+
   for (let i = 0; i < 50; i++) {
     const order = allOrders[i % allOrders.length];
     const invoiceStatuses = ["oczekuje", "zaplacona", "anulowana"];
@@ -274,7 +274,7 @@ async function main() {
   }
   console.log("✅ Invoices: 50");
 
-  // ===== MESSAGE THREADS (50) =====
+
   for (let i = 0; i < 50; i++) {
     const order = allOrders[i % allOrders.length];
     const thread = {
@@ -296,7 +296,7 @@ async function main() {
     `SELECT id FROM message_threads ORDER BY id ASC`
   );
 
-  // ===== MESSAGES (50) =====
+
   const messageTexts = [
     "Dzień dobry, zaczynamy serwis.",
     "Jakie są problemy z pojazdem?",
@@ -325,7 +325,7 @@ async function main() {
   }
   console.log("✅ Messages: 50");
 
-  // ===== NOTIFICATIONS (50) =====
+
   const notificationTitles = [
     "Panel admin",
     "Nowe zlecenie",
@@ -356,7 +356,7 @@ async function main() {
   }
   console.log("✅ Notifications: 50");
 
-  // ===== 1. PART CATEGORIES (10) =====
+
   const categories = [
     "Hamulce", "Filtry", "Oleje", "Zawieszenie", "Silnik", 
     "Klimatyzacja", "Elektryka", "Oświetlenie", "Paliwo", "Inne"
@@ -373,7 +373,7 @@ async function main() {
 
   const allCategories = await all<IdRow>(`SELECT id FROM part_categories ORDER BY id ASC`);
 
-  // ===== 2. SERVICE PRICES (10) =====
+
   const services = [
     { name: "Wymiana oleju", price: 150, hours: 1 },
     { name: "Diagnostyka", price: 80, hours: 1 },
@@ -396,7 +396,7 @@ async function main() {
   }
   console.log("✅ Service Prices: 10");
 
-  // ===== 3. VEHICLE HISTORY (50) =====
+
   for (let i = 0; i < 50; i++) {
     const vehicle = allVehicles[i % allVehicles.length];
     const mechanic = mechanics[i % mechanics.length];
@@ -419,7 +419,7 @@ async function main() {
   }
   console.log("✅ Vehicle History: 50");
 
-  // ===== 4. EMPLOYEE SCHEDULE (50) =====
+
   const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
 
   for (let i = 0; i < 50; i++) {
@@ -441,7 +441,7 @@ async function main() {
   }
   console.log("✅ Employee Schedule: 50");
 
-  // ===== 5. SUPPLIERS (15) =====
+
   const supplierNames = [
     "Auto Parts Sp. z o.o.", "Części Samochodowe Plus", "Serwis Import",
     "SupplyCar Polska", "Mechanic Store", "Auto Express", "Parts World",
@@ -471,7 +471,7 @@ async function main() {
   }
   console.log("✅ Suppliers: 15");
 
-  // ===== 6. RATINGS (50) =====
+
   for (let i = 0; i < 50; i++) {
     const customer = allCustomers[i % allCustomers.length];
     const mechanic = mechanics[i % mechanics.length];
@@ -492,7 +492,7 @@ async function main() {
   }
   console.log("✅ Ratings: 50");
 
-  // ===== 7. EMAIL TEMPLATES (6) =====
+
   const emailTemplates = [
     {
       name: "Potwierdzenie rezerwacji",
@@ -541,7 +541,7 @@ async function main() {
   }
   console.log("✅ Email Templates: 6");
 
-  // ===== 8. ANALYTICS (30 dni) =====
+
   for (let i = 0; i < 30; i++) {
     const day = (i % 28) + 1;
     const topMechanic = mechanics[i % mechanics.length];

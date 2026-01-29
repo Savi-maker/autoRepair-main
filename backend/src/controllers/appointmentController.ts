@@ -24,7 +24,7 @@ export async function listAppointments(req: AuthRequest, res: Response) {
 
     let params: any[] = [];
 
-    // Dla customer - tylko jego wizyty
+
     if (isCustomer && customerId) {
       query += ` WHERE a.customer_id = ?`;
       params = [customerId];
@@ -84,7 +84,7 @@ export async function createAppointment(req: AuthRequest, res: Response) {
       });
     }
 
-    // Dla customer - musi tworzyć dla siebie
+
     const isCustomer = req.user.rola === "user";
     if (isCustomer && customer_id && customer_id !== req.user.customer_id) {
       return res.status(403).json({ error: "Nie możesz tworzyć wizyt dla innych klientów" });

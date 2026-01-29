@@ -13,7 +13,7 @@ export async function listThreads(req: AuthRequest, res: Response) {
     const customerId = req.user.customer_id;
     const userId = req.user.id;
 
-    // Dla customer - tylko jego wątki
+
     let whereClause = "";
     let params: any[] = [];
 
@@ -218,7 +218,7 @@ export async function createMessage(req: AuthRequest, res: Response) {
       [threadId, req.user.id, null, String(text)]
     );
 
-    // update thread updated_at
+
     await run(`UPDATE message_threads SET updated_at = datetime('now') WHERE id = ?`, [threadId]);
 
     const created = await get(

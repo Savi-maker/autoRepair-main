@@ -21,7 +21,7 @@ import ResetPasswordScreen from './screens/Auth/ResetPasswordScreen'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { ThemeProvider } from './screens/ThemeContext/ThemeContext'
 
-// Suppress WebGL warnings globally
+
 if (typeof window !== 'undefined') {
   const originalWarn = console.warn
   console.warn = (...args: any[]) => {

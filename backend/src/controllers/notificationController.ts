@@ -47,7 +47,7 @@ export async function createNotification(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
-    // tylko admin / serwis może tworzyć dla innych (opcjonalnie)
+
     if (req.user.rola !== "admin") {
       return res.status(403).json({ success: false, message: "Brak uprawnień" });
     }
