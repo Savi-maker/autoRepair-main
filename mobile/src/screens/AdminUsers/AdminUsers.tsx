@@ -69,6 +69,12 @@ export default function AdminUsers() {
   const [resetPass, setResetPass] = useState('')
   const [resetUser, setResetUser] = useState<AdminUserType | null>(null)
 
+  const [openRoleChange, setOpenRoleChange] = useState(false)
+  const [changingRole, setChangingRole] = useState(false)
+  const [roleChangeError, setRoleChangeError] = useState<string | null>(null)
+  const [selectedNewRole, setSelectedNewRole] = useState<UserRole>('recepcja')
+  const [roleChangeUser, setRoleChangeUser] = useState<AdminUserType | null>(null)
+
   const loadAll = async () => {
     setLoading(true)
     setError(null)
@@ -190,6 +196,50 @@ export default function AdminUsers() {
     if (resp.data) setUsers((xs) => xs.map((x) => (x.id === (resp.data as any).id ? (resp.data as any) : x)))
   }
 
+  const openRoleChangeModal = (u: AdminUserType) => {
+    const currentRole = toRole(u.rola)
+    setRoleChangeUser(u)
+    setSelectedNewRole(currentRole)
+    setRoleChangeError(null)
+    setOpenRoleChange(true)
+  }
+
+  const closeRoleChange = () => {
+    if (changingRole) return
+    setOpenRoleChange(false)
+    setRoleChangeUser(null)
+    setSelectedNewRole('recepcja')
+    setRoleChangeError(null)
+  }
+
+  const submitRoleChange = async () => {
+    if (!roleChangeUser) return
+    
+    const currentRole = toRole(roleChangeUser.rola)
+    if (currentRole === selectedNewRole) {
+      closeRoleChange()
+      return
+    }
+
+    setChangingRole(true)
+    setRoleChangeError(null)
+
+    const prev = users
+    setUsers((xs) => xs.map((x) => (x.id === roleChangeUser.id ? ({ ...x, rola: selectedNewRole } as any) : x)))
+
+    const resp = await updateUserAdmin(roleChangeUser.id, { rola: selectedNewRole })
+    setChangingRole(false)
+
+    if (!resp.success) {
+      setUsers(prev)
+      setRoleChangeError(resp.message || 'Nie udało się zmienić roli')
+      return
+    }
+
+    if (resp.data) setUsers((xs) => xs.map((x) => (x.id === (resp.data as any).id ? (resp.data as any) : x)))
+    closeRoleChange()
+  }
+
   const openResetModal = (u: AdminUserType) => {
     setResetUser(u)
     setResetPass('')
@@ -297,8 +347,8 @@ export default function AdminUsers() {
                   <button className="btn-secondary" onClick={() => openResetModal(u)}>
                     Reset hasła
                   </button>
-                  <button className="btn-secondary" onClick={() => makeAdmin(u)} disabled={r === 'admin'}>
-                    Nadaj admina
+                  <button className="btn-secondary" onClick={() => openRoleChangeModal(u)}>
+                    Zmień rolę
                   </button>
                   <button className={s === 'aktywny' ? 'btn-danger' : 'btn-success'} onClick={() => toggleStatus(u)}>
                     {s === 'aktywny' ? 'Zablokuj' : 'Aktywuj'}
@@ -423,6 +473,57 @@ export default function AdminUsers() {
               </button>
               <button className="a-btn-primary" onClick={submitReset} disabled={resetting}>
                 {resetting ? 'Resetuję…' : 'Zapisz hasło'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {openRoleChange && roleChangeUser && (
+        <div
+          className="a-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeRoleChange()
+          }}
+        >
+          <div className="a-modal">
+            <div className="a-modal-top">
+              <h2 className="a-modal-title">Zmień rolę użytkownika</h2>
+              <button className="btn-secondary" onClick={closeRoleChange} disabled={changingRole}>
+                Zamknij
+              </button>
+            </div>
+
+            <div style={{ marginTop: 10, color: '#ddd' }}>
+              <div style={{ fontWeight: 900, color: '#ffcc99' }}>{displayName(roleChangeUser)}</div>
+              <div style={{ marginTop: 6 }}>
+                <b>Email:</b> {roleChangeUser.mail}
+              </div>
+              <div style={{ marginTop: 6 }}>
+                <b>Obecna rola:</b> <span className={`role-badge role-${toRole(roleChangeUser.rola)}`}>{ROLE_LABEL[toRole(roleChangeUser.rola)]}</span>
+              </div>
+            </div>
+
+            <div className="a-modal-grid" style={{ marginTop: 12 }}>
+              <div className="a-field" style={{ gridColumn: '1 / -1' }}>
+                <label>Nowa rola</label>
+                <select value={selectedNewRole} onChange={(e) => setSelectedNewRole(e.target.value as UserRole)} disabled={changingRole}>
+                  <option value="recepcja">Recepcja</option>
+                  <option value="mechanik">Mechanik</option>
+                  <option value="kierownik">Kierownik</option>
+                  <option value="admin">Administrator</option>
+                </select>
+              </div>
+            </div>
+
+            {roleChangeError && <div className="a-modal-msg error">⚠️ {roleChangeError}</div>}
+
+            <div className="a-modal-actions">
+              <button className="btn-secondary" onClick={closeRoleChange} disabled={changingRole}>
+                Anuluj
+              </button>
+              <button className="a-btn-primary" onClick={submitRoleChange} disabled={changingRole}>
+                {changingRole ? 'Zmieniam…' : 'Zmień rolę'}
               </button>
             </div>
           </div>

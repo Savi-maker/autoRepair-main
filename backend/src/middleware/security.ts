@@ -1,6 +1,41 @@
 import { Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
 import helmet from 'helmet'
+import jwt from 'jsonwebtoken'
+
+type AuthPayload = {
+  id: number;
+  mail: string;
+  rola: string;
+  customer_id?: number;
+};
+
+// Funkcja do normalizacji roli
+function normalizeRole(role?: string): string {
+  const r = String(role ?? "").trim().toLowerCase();
+  if (r === "admin" || r === "administrator") return "admin";
+  if (r === "kierownik" || r === "manager") return "kierownik";
+  if (r === "mechanik" || r === "mechanic") return "mechanik";
+  if (r === "recepcja" || r === "receptionist") return "recepcja";
+  return "user";
+}
+
+// Sprawdzenie czy request jest od admina
+function isAdminRequest(req: Request): boolean {
+  try {
+    const header = req.headers.authorization;
+    if (!header?.startsWith("Bearer ")) return false;
+    
+    const token = header.slice("Bearer ".length);
+    const secret = process.env.JWT_SECRET;
+    if (!secret) return false;
+    
+    const payload = jwt.verify(token, secret) as AuthPayload;
+    return normalizeRole(payload.rola) === "admin";
+  } catch {
+    return false;
+  }
+}
 
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -8,6 +43,7 @@ export const generalLimiter = rateLimit({
   message: 'Zbyt wiele żądań z tego adresu IP, spróbuj ponownie później.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => isAdminRequest(req), // Admini omijają limit
 })
 
 export const authLimiter = rateLimit({
@@ -25,6 +61,7 @@ export const apiLimiter = rateLimit({
   message: 'Zbyt wiele żądań do tego endpointu, spróbuj ponownie później.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => isAdminRequest(req), // Admini omijają limit
 })
 
 export function helmetMiddleware() {
