@@ -7,6 +7,7 @@ import './Zlecenia.css'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Stage, ContactShadows, Environment } from '@react-three/drei'
 import V8Engine from '../../components/models/v8Engine'
+import { canUseWebGL } from '../../utils/webglDetect'
 
 import {
   getOrders,
@@ -39,8 +40,6 @@ function mapUiToBackendStatus(s: UiOrderStatus) {
 export default function Zlecenia() {
   const navigate = useNavigate()
   const { hasPermission } = useAuth()
-  const canCreateOrders = hasPermission('canCreateOrders')
-  const canManageOrders = hasPermission('canManageOrders')
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<FilterStatus>('wszystkie')
 
@@ -290,7 +289,6 @@ export default function Zlecenia() {
 
   const submitDetailsSave = async () => {
     if (!selectedOrder) return
-    if (!canManageOrders) return
     setDetailsError(null)
     setDetailsSaving(true)
 
@@ -344,7 +342,7 @@ export default function Zlecenia() {
             <option value="zakończone">Zakończone</option>
             <option value="anulowane">Anulowane</option>
           </select>
-          {canCreateOrders && (
+          {hasPermission('canManageOrders') && (
             <AppButton variant="primary" onClick={() => setOpen(true)}>
               Dodaj nowe zlecenie
             </AppButton>
@@ -641,28 +639,30 @@ export default function Zlecenia() {
           </div>
         </div>
         <div className="model-canvas">
-          <Canvas shadows style={{ width: '100%', height: '100%' }} camera={{ position: [0, 1.2, 1.8], fov: 38 }}>
-            <ambientLight intensity={0.25} />
-            <hemisphereLight args={['#ffffff', '#222', 0.45]} />
-            <directionalLight position={[5, 12, 8]} intensity={0.8} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-camera-near={0.5} shadow-camera-far={100} />
+          {canUseWebGL() && (
+            <Canvas shadows style={{ width: '100%', height: '100%' }} camera={{ position: [0, 1.2, 1.8], fov: 38 }}>
+              <ambientLight intensity={0.25} />
+              <hemisphereLight args={['#ffffff', '#222', 0.45]} />
+              <directionalLight position={[5, 12, 8]} intensity={0.8} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-camera-near={0.5} shadow-camera-far={100} />
 
-            <OrbitControls enablePan enableZoom enableRotate autoRotate autoRotateSpeed={0.3} />
+              <OrbitControls enablePan enableZoom enableRotate autoRotate autoRotateSpeed={0.3} />
 
-            <Suspense fallback={<mesh />}>
-              <Environment preset="studio" background={false} />
-              <Stage adjustCamera={true} intensity={0.75} shadows={true}>
-                <V8Engine 
-                  position={[0, -0.2, 0]} 
-                  rotation={[Math.PI / 2, 0, 0]}
-                  onPartsLoaded={setEnginePartsRaw}
-                  // Przekazujemy przefiltrowaną listę technicznych ID
-                  highlightedPart={getTechnicalParts(activeLabel)}
-                />
-              </Stage>
+              <Suspense fallback={<mesh />}>
+                <Environment preset="studio" background={false} />
+                <Stage adjustCamera={true} intensity={0.75} shadows={true}>
+                  <V8Engine 
+                    position={[0, -0.2, 0]} 
+                    rotation={[Math.PI / 2, 0, 0]}
+                    onPartsLoaded={setEnginePartsRaw}
+                    // Przekazujemy przefiltrowaną listę technicznych ID
+                    highlightedPart={getTechnicalParts(activeLabel)}
+                  />
+                </Stage>
 
-              <ContactShadows position={[0, -0.9, 0]} opacity={0.8} width={4} height={4} blur={3} far={1.6} />
-            </Suspense>
-          </Canvas>
+                <ContactShadows position={[0, -0.9, 0]} opacity={0.8} width={4} height={4} blur={3} far={1.6} />
+              </Suspense>
+            </Canvas>
+          )}
         </div>
       </section>
 
@@ -738,12 +738,7 @@ export default function Zlecenia() {
                 <div className="meta" style={{ marginBottom: 6 }}>
                   <b>Status</b>
                 </div>
-                <select
-                  className="z-select"
-                  value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value as any)}
-                  disabled={!canManageOrders}
-                >
+                <select className="z-select" value={editStatus} onChange={(e) => setEditStatus(e.target.value as any)}>
                   <option value="oczekujące">Oczekujące</option>
                   <option value="w trakcie">W trakcie</option>
                   <option value="zakończone">Zakończone</option>
@@ -759,13 +754,12 @@ export default function Zlecenia() {
                   value={editOpis}
                   onChange={(e) => setEditOpis(e.target.value)}
                   rows={5}
-                  disabled={!canManageOrders}
                   style={{
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: 10,
                     border: '1px solid rgba(255,102,0,0.18)',
-                    background: !canManageOrders ? '#161616' : '#0f0f0f',
+                    background: '#0f0f0f',
                     color: '#fff',
                     resize: 'vertical',
                   }}
@@ -779,11 +773,9 @@ export default function Zlecenia() {
               <button className="z-btn-secondary btn-secondary" onClick={closeDetails} disabled={detailsSaving}>
                 Anuluj
               </button>
-              {canManageOrders && (
-                <button className="z-btn-primary" onClick={submitDetailsSave} disabled={detailsSaving}>
-                  {detailsSaving ? 'Zapisywanie…' : 'Zapisz zmiany'}
-                </button>
-              )}
+              <button className="z-btn-primary" onClick={submitDetailsSave} disabled={detailsSaving}>
+                {detailsSaving ? 'Zapisywanie…' : 'Zapisz zmiany'}
+              </button>
             </div>
           </div>
         </div>

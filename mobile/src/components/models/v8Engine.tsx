@@ -107,5 +107,4 @@ export function V8Engine(props: V8EngineProps) {
 }
 
 useGLTF.preload(modelUrl)
-useGLTF.preload(modelUrl)
 export default V8Engine
