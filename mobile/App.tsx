@@ -17,6 +17,7 @@ import Magazyn from './src/screens/Magazyn/Magazyn'
 import Faktury from './src/screens/Faktury/Faktury'
 import AiHelper from './src/screens/AiHelper/AiHelper'
 import Messages from './src/screens/Messages/Messages'
+import VehicleInteractive from './src/screens/Interaktywne/VehicleInteractive'
 import { getToken } from './src/utils/api'
 
 type JwtPayload = {
@@ -89,6 +90,7 @@ function App() {
         <Route path="/faktury" element={<Faktury />} />
         <Route path="/ai" element={<AiHelper />} />
         <Route path="/wiadomosci" element={<Messages />} />
+        <Route path="/Interaktywne" element={<VehicleInteractive />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
