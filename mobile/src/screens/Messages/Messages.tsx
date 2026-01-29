@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import AppButton from '../../components/AppButton/AppButton'
 import './Messages.css'
 import {
   getThreads,
@@ -28,6 +30,7 @@ function titleForThread(t: ThreadType) {
 }
 
 export default function Messages() {
+  const navigate = useNavigate()
   const [threads, setThreads] = useState<ThreadType[]>([])
   const [activeId, setActiveId] = useState<number | null>(null)
 
@@ -242,7 +245,12 @@ export default function Messages() {
   return (
     <div className="msg-container">
       <div className="msg-left">
-        <div className="msg-left-head">Wiadomości</div>
+        <div className="msg-left-head">
+          <AppButton variant="back" onClick={() => navigate(-1)} style={{ marginRight: 8 }}>
+            ← Wróć
+          </AppButton>
+          Wiadomości
+        </div>
 
         <button className="msg-btn-primary" onClick={openNewThreadModal}>
           ➕ Nowy wątek

@@ -1,64 +1,61 @@
-import type { Response } from "express";
+﻿import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
 import { all, get, run } from "../db.js";
 
-/**
- * THREADS
- */
+
 
 export async function listThreads(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
     const q = String((req.query.q ?? "") as string).trim();
+    const isCustomer = req.user.rola === "user";
+    const customerId = req.user.customer_id;
+    const userId = req.user.id;
 
-    const rows = q
-      ? await all(
-          `SELECT
-            t.id, t.title, t.customer_id, t.order_id, t.created_by_user_id, t.created_at, t.updated_at,
-            c.name AS customer_name,
-            o.service AS order_service,
-            (
-              SELECT m.text FROM messages m
-              WHERE m.thread_id = t.id
-              ORDER BY m.id DESC
-              LIMIT 1
-            ) AS last_message_text,
-            (
-              SELECT m.created_at FROM messages m
-              WHERE m.thread_id = t.id
-              ORDER BY m.id DESC
-              LIMIT 1
-            ) AS last_message_at
-          FROM message_threads t
-          LEFT JOIN customers c ON c.id = t.customer_id
-          LEFT JOIN orders o ON o.id = t.order_id
-          WHERE t.title LIKE ? OR c.name LIKE ?
-          ORDER BY COALESCE(last_message_at, t.updated_at) DESC, t.id DESC`,
-          [`%${q}%`, `%${q}%`]
-        )
-      : await all(
-          `SELECT
-            t.id, t.title, t.customer_id, t.order_id, t.created_by_user_id, t.created_at, t.updated_at,
-            c.name AS customer_name,
-            o.service AS order_service,
-            (
-              SELECT m.text FROM messages m
-              WHERE m.thread_id = t.id
-              ORDER BY m.id DESC
-              LIMIT 1
-            ) AS last_message_text,
-            (
-              SELECT m.created_at FROM messages m
-              WHERE m.thread_id = t.id
-              ORDER BY m.id DESC
-              LIMIT 1
-            ) AS last_message_at
-          FROM message_threads t
-          LEFT JOIN customers c ON c.id = t.customer_id
-          LEFT JOIN orders o ON o.id = t.order_id
-          ORDER BY COALESCE(last_message_at, t.updated_at) DESC, t.id DESC`
-        );
+
+    let whereClause = "";
+    let params: any[] = [];
+
+    if (isCustomer && customerId) {
+      whereClause = ` WHERE t.customer_id = ? OR t.created_by_user_id = ?`;
+      params = [customerId, userId];
+    }
+
+    const searchCondition = q ? ` AND (t.title LIKE ? OR c.name LIKE ?)` : "";
+    const searchParams = q ? [`%${q}%`, `%${q}%`] : [];
+
+    if (q && !whereClause) {
+      whereClause = ` WHERE (t.title LIKE ? OR c.name LIKE ?)`;
+      params = searchParams;
+    } else if (q) {
+      params = params.concat(searchParams);
+    }
+
+    const rows = await all(
+      `SELECT
+        t.id, t.title, t.customer_id, t.order_id, t.created_by_user_id, t.created_at, t.updated_at,
+        c.name AS customer_name,
+        o.service AS order_service,
+        (
+          SELECT m.text FROM messages m
+          WHERE m.thread_id = t.id
+          ORDER BY m.id DESC
+          LIMIT 1
+        ) AS last_message_text,
+        (
+          SELECT m.created_at FROM messages m
+          WHERE m.thread_id = t.id
+          ORDER BY m.id DESC
+          LIMIT 1
+        ) AS last_message_at
+      FROM message_threads t
+      LEFT JOIN customers c ON c.id = t.customer_id
+      LEFT JOIN orders o ON o.id = t.order_id
+      ${whereClause}${searchCondition}
+      ORDER BY COALESCE(last_message_at, t.updated_at) DESC, t.id DESC`,
+      params
+    );
 
     return res.json({ success: true, message: "OK", data: rows });
   } catch (e: any) {
@@ -71,7 +68,7 @@ export async function getThreadById(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const thread = await get(
       `SELECT
@@ -131,7 +128,7 @@ export async function updateThread(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const { title } = req.body ?? {};
     if (title == null) return res.status(400).json({ success: false, message: "Podaj pole: title" });
@@ -159,7 +156,7 @@ export async function deleteThread(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const existing = await get<{ id: number }>(`SELECT id FROM message_threads WHERE id = ?`, [id]);
     if (!existing) return res.status(404).json({ success: false, message: "Thread not found" });
@@ -172,9 +169,7 @@ export async function deleteThread(req: AuthRequest, res: Response) {
   }
 }
 
-/**
- * MESSAGES
- */
+
 
 export async function listMessages(req: AuthRequest, res: Response) {
   try {
@@ -208,7 +203,7 @@ export async function createMessage(req: AuthRequest, res: Response) {
 
     const threadId = Number(req.params.threadId);
     if (!Number.isFinite(threadId)) {
-      return res.status(400).json({ success: false, message: "Nieprawidłowe threadId" });
+      return res.status(400).json({ success: false, message: "NieprawidĹ‚owe threadId" });
     }
 
     const { text } = req.body ?? {};
@@ -223,7 +218,7 @@ export async function createMessage(req: AuthRequest, res: Response) {
       [threadId, req.user.id, null, String(text)]
     );
 
-    // update thread updated_at
+
     await run(`UPDATE message_threads SET updated_at = datetime('now') WHERE id = ?`, [threadId]);
 
     const created = await get(
@@ -238,3 +233,4 @@ export async function createMessage(req: AuthRequest, res: Response) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }
 }
+

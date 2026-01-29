@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../utils/useAuth'
 import {
   logout,
   getOrders,
@@ -65,9 +66,10 @@ function sameDay(a: Date, b: Date) {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate()
+  const { hasPermission } = useAuth()
   const [loadingLogout, setLoadingLogout] = useState(false)
 
-  // DATA STATE
+
   const [loadingData, setLoadingData] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -85,19 +87,24 @@ const Dashboard: React.FC = () => {
   }
 
   const menuItems = [
-    { path: '/UserProfileScreen', label: '👤 Profil' },
-    { path: '/zlecenia', label: '🧾 Zlecenia' },
-    { path: '/pojazdy', label: '🚗 Pojazdy' },
-    { path: '/klienci', label: '👥 Klienci' },
-    { path: '/kalendarz', label: '📅 Kalendarz' },
-    { path: '/magazyn', label: '📦 Magazyn' },
-    { path: '/faktury', label: '🧾 Faktury' },
-    { path: '/wiadomosci', label: '💬 Wiadomości' },
-    { path: '/ai', label: '🤖 AI' },
-    { path: '/search', label: '🔍 Szukaj' },
-    { path: '/settings', label: '⚙️ Ustawienia' },
-    { path: '/admin/uzytkownicy', label: '👑 Admin' },
+    { path: '/UserProfileScreen', label: '👤 Profil', permission: null as any },
+    { path: '/zlecenia', label: '🧾 Zlecenia', permission: 'canViewOrders' as any },
+    { path: '/pojazdy', label: '🚗 Pojazdy', permission: 'canViewVehicles' as any },
+    { path: '/klienci', label: '👥 Klienci', permission: 'canViewCustomers' as any },
+    { path: '/kalendarz', label: '📅 Kalendarz', permission: 'canViewAppointments' as any },
+    { path: '/magazyn', label: '📦 Magazyn', permission: 'canViewWarehouse' as any },
+    { path: '/faktury', label: '🧾 Faktury', permission: 'canViewInvoices' as any },
+    { path: '/wiadomosci', label: '💬 Wiadomości', permission: 'canViewMessages' as any },
+    { path: '/ai', label: '🤖 AI', permission: 'canViewAiHelper' as any },
+    { path: '/search', label: '🔍 Szukaj', permission: null as any },
+    { path: '/settings', label: '⚙️ Ustawienia', permission: null as any },
+    { path: '/admin/uzytkownicy', label: '👑 Admin', permission: 'canViewAdminPanel' as any },
   ]
+
+
+  const filteredMenuItems = menuItems.filter(
+    (item) => !item.permission || hasPermission(item.permission)
+  )
 
   useEffect(() => {
     let alive = true
@@ -106,31 +113,42 @@ const Dashboard: React.FC = () => {
       setLoadingData(true)
       setError(null)
 
-      const [o, a, ls, inv, th, n] = await Promise.all([
-        getOrders(),
-        getAppointments(),
-        getLowStockParts(),
-        getInvoices(),
-        getThreads(),
-        getNotifications(),
-      ])
+      const withTimeout = (promise: any, ms: number) =>
+        Promise.race([
+          promise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
+        ])
 
-      if (!alive) return
+      try {
+        const [o, a, ls, inv, th, n] = await Promise.allSettled([
+          withTimeout(getOrders(), 10000),
+          withTimeout(getAppointments(), 10000),
+          withTimeout(getLowStockParts(), 10000),
+          withTimeout(getInvoices(), 10000),
+          withTimeout(getThreads(), 10000),
+          withTimeout(getNotifications(), 10000),
+        ])
 
-      if (!o.success) return setError(o.message || 'Błąd pobierania zleceń'), setLoadingData(false)
-      if (!a.success) return setError(a.message || 'Błąd pobierania kalendarza'), setLoadingData(false)
-      if (!ls.success) return setError(ls.message || 'Błąd pobierania magazynu'), setLoadingData(false)
-      if (!inv.success) return setError(inv.message || 'Błąd pobierania faktur'), setLoadingData(false)
-      if (!th.success) return setError(th.message || 'Błąd pobierania wiadomości'), setLoadingData(false)
-      if (!n.success) return setError(n.message || 'Błąd pobierania powiadomień'), setLoadingData(false)
+        if (!alive) return
 
-      setOrders(o.data || [])
-      setAppointments(a.data || [])
-      setLowStock(ls.data || [])
-      setInvoices(inv.data || [])
-      setThreads(th.data || [])
-      setNotifications(n.data || [])
-      setLoadingData(false)
+        setOrders(o.status === 'fulfilled' && o.value?.success ? o.value.data || [] : [])
+        setAppointments(a.status === 'fulfilled' && a.value?.success ? a.value.data || [] : [])
+        setLowStock(ls.status === 'fulfilled' && ls.value?.success ? ls.value.data || [] : [])
+        setInvoices(inv.status === 'fulfilled' && inv.value?.success ? inv.value.data || [] : [])
+        setThreads(th.status === 'fulfilled' && th.value?.success ? th.value.data || [] : [])
+        setNotifications(n.status === 'fulfilled' && n.value?.success ? n.value.data || [] : [])
+
+        const errors = [o, a, ls, inv, th, n].filter(r => r.status === 'rejected')
+        if (errors.length > 0) {
+          console.warn('Některé data se nepodařily načíst:', errors)
+        }
+      } catch (err: any) {
+        if (alive) {
+          setError('Chyba při načítání dat')
+        }
+      } finally {
+        if (alive) setLoadingData(false)
+      }
     }
 
     load()
@@ -160,7 +178,7 @@ const Dashboard: React.FC = () => {
       }
     }
 
-    // jeśli backend nie zwraca nazwy pojazdu, to wyświetlamy ID (później można zrobić join na backendzie)
+
     const vehicleLabel = first?.vehicle_label || (first?.vehicle_id ? `Pojazd #${first.vehicle_id}` : '—')
     const serviceLabel = first?.service || first?.title || 'Wizyta'
     const mechanicLabel = first?.mechanic_name || (first?.mechanic_user_id ? `Mechanik #${first.mechanic_user_id}` : '—')
@@ -237,7 +255,7 @@ const Dashboard: React.FC = () => {
   const activity: ActivityItem[] = useMemo(() => {
     const items: { tsIso: string; item: ActivityItem }[] = []
 
-    // ostatnie zlecenia
+
     ;(orders || [])
       .slice()
       .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
@@ -256,7 +274,7 @@ const Dashboard: React.FC = () => {
         })
       })
 
-    // braki magazynowe
+
     ;(lowStock || []).slice(0, 1).forEach((p) => {
       const tsIso = p.created_at || new Date().toISOString()
       items.push({
@@ -271,7 +289,7 @@ const Dashboard: React.FC = () => {
       })
     })
 
-    // faktury
+
     ;(invoices || [])
       .slice()
       .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
@@ -290,7 +308,7 @@ const Dashboard: React.FC = () => {
         })
       })
 
-    // wizyty
+
     ;(appointments || [])
       .slice()
       .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
@@ -309,7 +327,7 @@ const Dashboard: React.FC = () => {
         })
       })
 
-    // wątki wiadomości
+
     ;(threads || [])
       .slice()
       .sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime())
@@ -328,7 +346,7 @@ const Dashboard: React.FC = () => {
         })
       })
 
-    // powiadomienia (nieprzeczytane)
+
     const unread = (notifications || []).filter((n) => !n.read_at)
     if (unread.length) {
       items.push({
@@ -388,7 +406,7 @@ const Dashboard: React.FC = () => {
       </header>
 
       <div className="top-menu-bar">
-        {menuItems.map((item) => (
+        {filteredMenuItems.map((item) => (
           <button key={item.path} onClick={() => navigate(item.path)} className="top-menu-card">
             <div className="menu-icon">{item.label.split(' ')[0]}</div>
             <div className="top-menu-label">{item.label.split(' ').slice(1).join(' ')}</div>

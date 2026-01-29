@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 
 export default function GlobalErrorOverlay() {
   const [error, setError] = useState<string | null>(null)
@@ -34,3 +34,4 @@ export default function GlobalErrorOverlay() {
     </div>
   )
 }
+

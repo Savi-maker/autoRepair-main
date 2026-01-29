@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/Dashboard/HomeScreen';
@@ -48,3 +48,4 @@ const BottomTabNavigator = () => {
 };
 
 export default BottomTabNavigator;
+

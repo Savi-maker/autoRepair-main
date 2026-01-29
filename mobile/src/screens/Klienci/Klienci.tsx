@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import AppButton from '../../components/AppButton/AppButton'
 import './Klienci.css'
 import {
   getCustomers,
@@ -12,11 +14,19 @@ import {
 } from '../../utils/api'
 
 export default function Klienci() {
+  const navigate = useNavigate()
   const [q, setQ] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const [customers, setCustomers] = useState<CustomerType[]>([])
+  const [customerPage, setCustomerPage] = useState(1)
+  const [customerPagination, setCustomerPagination] = useState<any>({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 1
+  })
   const [vehicles, setVehicles] = useState<VehicleType[]>([])
   const [orders, setOrders] = useState<OrderType[]>([])
 
@@ -39,37 +49,42 @@ export default function Klienci() {
   const [oCustomerId, setOCustomerId] = useState<number | ''>('')
   const [oVehicleId, setOVehicleId] = useState<number | ''>('')
 
-  const loadAll = async () => {
+  const loadAll = async (page: number = 1) => {
     setLoading(true)
     setError(null)
 
-    const [cRes, vRes, oRes] = await Promise.all([getCustomers(), getVehicles(), getOrders()])
+    const results = await Promise.allSettled([getCustomers(page, 20), getVehicles(), getOrders()])
 
-    if (!cRes.success) {
-      setError(cRes.message || 'Błąd klientów')
-      setLoading(false)
-      return
+    const [cRes, vRes, oRes] = results
+
+    if (cRes.status === 'fulfilled' && cRes.value.success) {
+      setCustomers(cRes.value.data || [])
+      if (cRes.value.pagination) {
+        setCustomerPagination(cRes.value.pagination)
+      }
     }
-    if (!vRes.success) {
-      setError(vRes.message || 'Błąd pojazdów')
-      setLoading(false)
-      return
+    if (vRes.status === 'fulfilled' && vRes.value.success) {
+      setVehicles(vRes.value.data || [])
     }
-    if (!oRes.success) {
-      setError(oRes.message || 'Błąd zleceń')
-      setLoading(false)
-      return
+    if (oRes.status === 'fulfilled' && oRes.value.success) {
+      setOrders(oRes.value.data || [])
     }
 
-    setCustomers(cRes.data || [])
-    setVehicles(vRes.data || [])
-    setOrders(oRes.data || [])
+    const hasError = results.some(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success))
+    if (hasError) {
+      const failedLoads = []
+      if (cRes.status === 'rejected' || (cRes.status === 'fulfilled' && !cRes.value.success)) failedLoads.push('klienci')
+      if (vRes.status === 'rejected' || (vRes.status === 'fulfilled' && !vRes.value.success)) failedLoads.push('pojazdy')
+      if (oRes.status === 'rejected' || (oRes.status === 'fulfilled' && !oRes.value.success)) failedLoads.push('zlecenia')
+      setError(`Błąd pobierania: ${failedLoads.join(', ')}`)
+    }
+
     setLoading(false)
   }
 
   useEffect(() => {
-    loadAll()
-  }, [])
+    loadAll(customerPage)
+  }, [customerPage])
 
   const data = useMemo(() => {
     const ql = q.toLowerCase()
@@ -182,6 +197,11 @@ export default function Klienci() {
   return (
     <div className="klienci-container">
       <div className="klienci-header">
+        <div className="klienci-left">
+          <AppButton variant="back" onClick={() => navigate(-1)}>
+            ← Wróć
+          </AppButton>
+        </div>
         <h1>Klienci</h1>
         <div className="k-actions">
           <input
@@ -256,6 +276,51 @@ export default function Klienci() {
           </div>
         ))}
       </div>
+
+      {customerPagination.totalPages > 1 && (
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          justifyContent: 'center', 
+          padding: '16px 0',
+          flexWrap: 'wrap',
+          alignItems: 'center'
+        }}>
+          <button 
+            onClick={() => setCustomerPage(p => Math.max(1, p - 1))}
+            disabled={customerPage === 1}
+            style={{
+              padding: '8px 16px',
+              background: customerPage === 1 ? '#555' : '#ff6600',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: customerPage === 1 ? 'not-allowed' : 'pointer',
+              opacity: customerPage === 1 ? 0.5 : 1,
+            }}
+          >
+            ← Poprzednia
+          </button>
+          <span style={{ color: '#ccc', fontSize: '14px' }}>
+            Strona <b>{customerPage}</b> z <b>{customerPagination.totalPages}</b>
+          </span>
+          <button 
+            onClick={() => setCustomerPage(p => p + 1)}
+            disabled={customerPage >= customerPagination.totalPages}
+            style={{
+              padding: '8px 16px',
+              background: customerPage >= customerPagination.totalPages ? '#555' : '#ff6600',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: customerPage >= customerPagination.totalPages ? 'not-allowed' : 'pointer',
+              opacity: customerPage >= customerPagination.totalPages ? 0.5 : 1,
+            }}
+          >
+            Następna →
+          </button>
+        </div>
+      )}
 
       {openDetails && selected && (
         <div

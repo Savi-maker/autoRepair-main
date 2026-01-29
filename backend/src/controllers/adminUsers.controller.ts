@@ -1,6 +1,7 @@
-import type { Response } from "express";
+﻿import type { Response } from "express";
 import bcrypt from "bcryptjs";
 import type { AuthRequest } from "../middleware/auth.js";
+import { normalizeRole } from "../middleware/auth.js";
 import { all, get, run } from "../db.js";
 
 function isAdmin(req: AuthRequest) {
@@ -28,7 +29,8 @@ export async function listAdminUsers(req: AuthRequest, res: Response) {
            ORDER BY id DESC`
         );
 
-    return res.json({ success: true, message: "OK", data: rows });
+    const data = (rows || []).map((r: any) => ({ ...r, rola: normalizeRole(r.rola) }));
+    return res.json({ success: true, message: "OK", data });
   } catch (e: any) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }
@@ -45,7 +47,7 @@ export async function createAdminUser(req: AuthRequest, res: Response) {
     const n = String(nazwisko ?? "").trim();
     const m = String(mail ?? "").trim().toLowerCase();
     const t = telefon != null ? String(telefon).trim() : null;
-    const r = String(rola ?? "user").trim();
+    const r = normalizeRole(rola ?? "user");
     const p = String(haslo ?? "");
 
     if (!i) return res.status(400).json({ success: false, message: "Brak pola: imie" });
@@ -74,7 +76,7 @@ export async function createAdminUser(req: AuthRequest, res: Response) {
       [result.lastID]
     );
 
-    return res.status(201).json({ success: true, message: "Created", data: created });
+    return res.status(201).json({ success: true, message: "Created", data: { ...created, rola: normalizeRole((created as any).rola) } });
   } catch (e: any) {
     const msg = String(e?.message || "").toLowerCase();
     if (msg.includes("unique")) {
@@ -110,7 +112,7 @@ export async function updateAdminUser(req: AuthRequest, res: Response) {
     }
 
     if (rola != null) {
-      const r = String(rola).trim();
+      const r = normalizeRole(rola);
       fields.push("rola = ?");
       params.push(r);
     }
@@ -126,7 +128,7 @@ export async function updateAdminUser(req: AuthRequest, res: Response) {
       [id]
     );
 
-    return res.json({ success: true, message: "Updated", data: updated });
+    return res.json({ success: true, message: "Updated", data: { ...updated, rola: normalizeRole((updated as any).rola) } });
   } catch (e: any) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }
@@ -161,3 +163,4 @@ export async function adminResetPassword(req: AuthRequest, res: Response) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }
 }
+

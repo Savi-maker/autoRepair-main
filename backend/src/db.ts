@@ -11,7 +11,6 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 export const db = new sqlite3.Database(DB_PATH);
 
-// Promise wrappers
 export function run(sql: string, params: any[] = []): Promise<{ lastID: number; changes: number }> {
   return new Promise((resolve, reject) => {
     db.run(sql, params, function (err) {
@@ -38,4 +37,3 @@ export function all<T = any>(sql: string, params: any[] = []): Promise<T[]> {
     });
   });
 }
-console.log("DB_PATH =", DB_PATH);

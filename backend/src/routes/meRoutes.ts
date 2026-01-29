@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { requireAuth, type AuthRequest } from "../middleware/auth.js";
 
 const router = Router();
@@ -8,3 +8,4 @@ router.get("/", requireAuth, (req: AuthRequest, res) => {
 });
 
 export default router;
+

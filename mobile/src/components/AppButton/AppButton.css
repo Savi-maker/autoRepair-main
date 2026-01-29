@@ -1,0 +1,72 @@
+/* AppButton.css */
+.app-btn {
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+}
+
+.app-btn:active {
+  transform: translateY(0);
+}
+
+.app-btn--disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.app-btn--primary {
+  background: linear-gradient(135deg, #ff8c00 0%, #ff6b35 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.28);
+}
+
+.app-btn--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255, 140, 0, 0.36);
+}
+
+.app-btn--danger {
+  background: #f3f4f6;
+  color: #ef4444;
+  border: 2px solid #ef4444;
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.28);
+}
+
+.app-btn--danger:hover {
+  background: #fee2e2;
+  transform: translateY(-2px);
+}
+
+.app-btn--secondary {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.app-btn--back {
+  background: transparent !important;
+  border: 2px solid #ffffff !important;
+  color: #ffffff !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+}
+
+.app-btn--back:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  transform: translateY(-1px) !important;
+}

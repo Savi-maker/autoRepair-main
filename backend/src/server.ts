@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+﻿import dotenv from "dotenv";
 dotenv.config();
 
 import app from "./app.js";
@@ -15,3 +15,4 @@ if (process.env.NODE_ENV !== "test") {
     console.log(`🚀 Server running on port ${PORT}`);
   });
 }
+

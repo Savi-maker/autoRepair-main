@@ -1,27 +1,141 @@
-Środowisko testowe Visual Studio Code
+# ============================================
+# KOMENDY URUCHOMIENIA - AutoRepair System
+# ============================================
+
+# ---------------------------------------------
+# 1. BACKEND (Node.js + Express + TypeScript)
+# ---------------------------------------------
+
+# Instalacja zależności
+cd backend
+npm install
+
+# Build TypeScript do JavaScript
+npm run build
+
+# Seed bazy danych (pierwsza inicjalizacja)
+npm run seed
+
+# Uruchomienie serwera (development)
+npm run dev
+
+# LUB uruchomienie serwera (production)
+npm start
 
 
-Pierwsza instalacja po pobraniu i załadowaniu rozszerzeń dla FrontEnd:
+# ---------------------------------------------
+# 2. FRONTEND (React + Vite + TypeScript)
+# ---------------------------------------------
 
-Przejście do folderu:
+# Instalacja zależności
+cd mobile
+npm install
 
--cd ./mobile
+# Uruchomienie dev servera (http://localhost:5173)
+npm run dev
 
--npm install
+# Build produkcyjny
+npm run build
 
-Rozruch programu:
+# Preview buildu produkcyjnego
+npm run preview
 
--npm run dev
+
+# ---------------------------------------------
+# 3. RESET BAZY DANYCH (pełne wyczyszczenie)
+# ---------------------------------------------
+
+# Windows (PowerShell)
+cd backend
+Remove-Item -Path "data\mydb.sqlite3" -Force
+npm run seed
+
+# Linux/Mac (Bash)
+cd backend
+rm -f data/mydb.sqlite3
+npm run seed
 
 
-Pierwsza instalacja po pobraniu i załadowaniu rozszerzeń dla Backend:
+# ---------------------------------------------
+# 4. PEŁNE URUCHOMIENIE (od zera)
+# ---------------------------------------------
 
-Przejście do folderu:
+# Terminal 1 - Backend
+cd backend
+npm install
+npm run build
+npm run seed
+npm run dev
 
-cd ./backend
+# Terminal 2 - Frontend
+cd mobile
+npm install
+npm run dev
 
--npm install
+# Aplikacja dostępna na: http://localhost:5173
+# API dostępne na: http://localhost:3000
 
-Rozruch programu należy wykonać z folderu mobile i backend aby działay front i backend:
 
--npm run dev
+# ---------------------------------------------
+# 5. TESTOWANIE API (przykładowe zapytania)
+# ---------------------------------------------
+
+# Health check
+curl http://localhost:3000/health
+
+# Login (PowerShell)
+$body = @{email="jan@example.com"; password="password123"} | ConvertTo-Json
+Invoke-RestMethod -Uri "http://localhost:3000/auth/login" -Method Post -ContentType "application/json" -Body $body
+
+# Login (Bash/curl)
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"jan@example.com","password":"password123"}'
+
+
+# ---------------------------------------------
+# 6. UŻYTKOWNICY TESTOWI (po seed)
+# ---------------------------------------------
+
+# Admin:
+# Email: jan@example.com
+# Hasło: password123
+
+# Kierownik:
+# Email: anna@example.com
+# Hasło: password123
+
+# Mechanik:
+# Email: piotr@example.com
+# Hasło: password123
+
+# Recepcja:
+# Email: maria@example.com
+# Hasło: password123
+
+# Klient:
+# Email: client1@gmail.com
+# Hasło: password123
+
+
+# ---------------------------------------------
+# 7. PRZYDATNE SKRYPTY
+# ---------------------------------------------
+
+# Backend - tylko build bez uruchomienia
+cd backend
+npm run build
+
+# Backend - debug z logami
+cd backend
+npm run seed
+node dist/server.js 2>&1
+
+# Frontend - analiza bundle size
+cd mobile
+npm run build
+npm run preview
+
+# Sprawdzenie wersji Node.js i npm
+node --version
+npm --version

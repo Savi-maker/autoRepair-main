@@ -1,4 +1,4 @@
-import { Customer, Vehicle, Order, Visit } from '../navigation/types'; 
+﻿import { Customer, Vehicle, Order, Visit } from '../navigation/types'; 
 
 export const customers: Customer[] = [
   { id: 'c1', name: 'Jan Kowalski', phone: '+48 600 000 111', email: 'jan@example.com' },
@@ -23,3 +23,4 @@ export const visits: Visit[] = [
   { id: 'vis2', date: '2025-11-18T08:00:00', title: 'Klocki + tarcze', vehicleId: 'v2', customerId: 'c2', status: 'w trakcie' },
   { id: 'vis3', date: '2025-11-21T12:00:00', title: 'Akumulator', vehicleId: 'v3', status: 'oczekujące' },
 ];
+

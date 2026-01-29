@@ -1,14 +1,14 @@
-import bcrypt from "bcrypt";
+﻿import bcrypt from "bcrypt";
 import { run, get, all } from "./db.js";
 import { initDb } from "./dbInit.js";
 
 type IdRow = { id: number };
 
 async function main() {
-  console.log("🌱 Seeding database (5 per table)...");
+  console.log("🌱 Seeding database (50 per table)...");
   await initDb();
 
-  // ===== CLEAR (kolejność ważna przez FK) =====
+
   await run(`DELETE FROM messages`);
   await run(`DELETE FROM message_threads`);
   await run(`DELETE FROM notifications`);
@@ -19,14 +19,63 @@ async function main() {
   await run(`DELETE FROM customers`);
   await run(`DELETE FROM users`);
 
-  // ===== USERS (5) =====
+
   const users = [
-    { imie: "Admin", nazwisko: "Serwis", mail: "admin@example.com", telefon: "500000001", rola: "admin", haslo: "admin123" },
-    { imie: "Jan", nazwisko: "Kowalski", mail: "jan@example.com", telefon: "500000002", rola: "user", haslo: "haslo123" },
-    { imie: "Ala", nazwisko: "Nowak", mail: "ala@example.com", telefon: "500000003", rola: "user", haslo: "pass123" },
-    { imie: "Kamil", nazwisko: "Wójcik", mail: "kamil@example.com", telefon: "500000004", rola: "user", haslo: "pass123" },
-    { imie: "Ola", nazwisko: "Zielińska", mail: "ola@example.com", telefon: "500000005", rola: "user", haslo: "pass123" }
+    { imie: "Admin", nazwisko: "Serwis", mail: "admin@example.com", telefon: "500000001", rola: "admin", haslo: "admin123" }
   ];
+
+
+  const firstNames = ["Jan", "Ala", "Kamil", "Ola", "Piotr", "Marek", "Katarzyna", "Ewa", "Tomasz", "Anna"];
+  const lastNames = ["Kowalski", "Nowak", "Wójcik", "Zielińska", "Lewandowski", "Wiśniewski", "Kamińska", "Kucharski", "Górski", "Mrówka"];
+
+  for (let i = 1; i <= 49; i++) {
+    const firstName = firstNames[i % firstNames.length];
+    const lastName = lastNames[i % lastNames.length];
+    users.push({
+      imie: `${firstName}${i}`,
+      nazwisko: lastName,
+      mail: `user${i}@example.com`,
+      telefon: `500000${String(i + 1).padStart(3, "0")}`,
+      rola: "user",
+      haslo: "pass123"
+    });
+  }
+
+
+  for (let i = 1; i <= 10; i++) {
+    users.push({
+      imie: `Mechanik${i}`,
+      nazwisko: "Nowak",
+      mail: `mechanic${i}@example.com`,
+      telefon: `600000${String(i).padStart(3, "0")}`,
+      rola: "mechanik",
+      haslo: "mech123"
+    });
+  }
+
+
+  for (let i = 1; i <= 10; i++) {
+    users.push({
+      imie: `Kierownik${i}`,
+      nazwisko: "Manager",
+      mail: `manager${i}@example.com`,
+      telefon: `610000${String(i).padStart(3, "0")}`,
+      rola: "kierownik",
+      haslo: "mgr123"
+    });
+  }
+
+
+  for (let i = 1; i <= 10; i++) {
+    users.push({
+      imie: `Recepcjonistka${i}`,
+      nazwisko: "Recepcja",
+      mail: `receptionist${i}@example.com`,
+      telefon: `620000${String(i).padStart(3, "0")}`,
+      rola: "recepcja",
+      haslo: "rec123"
+    });
+  }
 
   for (const u of users) {
     const hashed = await bcrypt.hash(u.haslo, 10);
@@ -35,207 +84,491 @@ async function main() {
        VALUES (?, ?, ?, ?, ?, ?)`,
       [u.imie, u.nazwisko, u.mail, u.telefon, u.rola, hashed]
     );
-    console.log(`✅ User: ${u.mail} / ${u.haslo}`);
   }
+  console.log(`✅ Users: ${users.length}`);
 
   const admin = await get<IdRow>(`SELECT id FROM users WHERE mail = ?`, ["admin@example.com"]);
-  const mechJan = await get<IdRow>(`SELECT id FROM users WHERE mail = ?`, ["jan@example.com"]);
-  const mechAla = await get<IdRow>(`SELECT id FROM users WHERE mail = ?`, ["ala@example.com"]);
+  
 
-  // ===== CUSTOMERS (5) =====
-  const customers = [
-    { name: "Adam Nowak", email: "adam@client.pl", phone: "600700801", notes: "Stały klient" },
-    { name: "Marek Wiśniewski", email: "marek@client.pl", phone: "600700802", notes: "Preferuje kontakt SMS" },
-    { name: "Katarzyna Lewandowska", email: "kasia@client.pl", phone: "600700803", notes: "Auto flotowe" },
-    { name: "Piotr Zieliński", email: "piotr@client.pl", phone: "600700804", notes: "Pilne terminy" },
-    { name: "Ewa Kamińska", email: "ewa@client.pl", phone: "600700805", notes: "Nowy klient" }
-  ];
+  const allMechanics = await all<IdRow>(`SELECT id FROM users WHERE rola IN ('mechanik', 'user') LIMIT 20`);
+  const mechanics = allMechanics.map(m => m.id);
 
-  for (const c of customers) {
+
+  const customerNames = ["Adam Nowak", "Marek Wiśniewski", "Katarzyna Lewandowska", "Piotr Zieliński", "Ewa Kamińska"];
+  const customerEmails = ["adam", "marek", "kasia", "piotr", "ewa"];
+  
+  for (let i = 1; i <= 50; i++) {
+    const nameBase = customerNames[i % customerNames.length];
+    const emailBase = customerEmails[i % customerEmails.length];
+    const customer = {
+      name: `${nameBase} ${i}`,
+      email: `${emailBase}${i}@client.pl`,
+      phone: `600700${String(800 + i).padStart(3, "0")}`,
+      notes: `Klient nr ${i}`
+    };
     await run(
       `INSERT INTO customers (name, email, phone, notes)
        VALUES (?, ?, ?, ?)`,
-      [c.name, c.email, c.phone, c.notes]
+      [customer.name, customer.email, customer.phone, customer.notes]
     );
   }
-  console.log("✅ Customers: 5");
+  console.log("✅ Customers: 50");
 
-  const c1 = await get<IdRow>(`SELECT id FROM customers WHERE name = ?`, ["Adam Nowak"]);
-  const c2 = await get<IdRow>(`SELECT id FROM customers WHERE name = ?`, ["Marek Wiśniewski"]);
-  const c3 = await get<IdRow>(`SELECT id FROM customers WHERE name = ?`, ["Katarzyna Lewandowska"]);
-  const c4 = await get<IdRow>(`SELECT id FROM customers WHERE name = ?`, ["Piotr Zieliński"]);
-  const c5 = await get<IdRow>(`SELECT id FROM customers WHERE name = ?`, ["Ewa Kamińska"]);
 
-  // ===== VEHICLES (5) =====
-  const vehicles = [
-    { customer_id: c1!.id, make: "Toyota", model: "Corolla", year: 2016, plate: "KR1234A", vin: "JTDBR32E111111111" },
-    { customer_id: c2!.id, make: "Volkswagen", model: "Golf", year: 2014, plate: "WA9876B", vin: "WVWZZZ1K222222222" },
-    { customer_id: c3!.id, make: "Ford", model: "Transit", year: 2019, plate: "GD4567C", vin: "WF0XXXTTG333333333" },
-    { customer_id: c4!.id, make: "BMW", model: "3", year: 2018, plate: "PO7654D", vin: "WBA8E9G5444444444" },
-    { customer_id: c5!.id, make: "Audi", model: "A4", year: 2017, plate: "LU1122E", vin: "WAUZZZ8K555555555" }
-  ];
+  const allCustomers = await all<IdRow>(`SELECT id FROM customers ORDER BY id ASC`);
+  
 
-  for (const v of vehicles) {
+  const userRows = await all<IdRow>(`SELECT id FROM users WHERE rola = 'user' ORDER BY id ASC`);
+  
+  for (let i = 0; i < userRows.length && i < allCustomers.length; i++) {
+    await run(`UPDATE users SET customer_id = ? WHERE id = ?`, [allCustomers[i].id, userRows[i].id]);
+  }
+  console.log(`✅ Users assigned to customers (${Math.min(userRows.length, allCustomers.length)} mappings)`);
+
+
+  const vehicleMakes = ["Toyota", "Volkswagen", "Ford", "BMW", "Audi", "Mercedes", "Honda", "Skoda", "Renault", "Peugeot"];
+  const vehicleModels = ["Corolla", "Golf", "Transit", "3", "A4", "C-Class", "Civic", "Octavia", "Clio", "308"];
+  
+  for (let i = 1; i <= 50; i++) {
+    const make = vehicleMakes[i % vehicleMakes.length];
+    const model = vehicleModels[i % vehicleModels.length];
+    const customer = allCustomers[i % allCustomers.length];
+    
     await run(
       `INSERT INTO vehicles (customer_id, make, model, year, plate, vin)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [v.customer_id, v.make, v.model, v.year, v.plate, v.vin]
+      [
+        customer.id,
+        make,
+        model,
+        2015 + (i % 10),
+        `POL${String(1000 + i).padStart(4, "0")}`,
+        `VIN${String(i).padStart(14, "0")}`
+      ]
     );
   }
-  console.log("✅ Vehicles: 5");
+  console.log("✅ Vehicles: 50");
 
-  const v1 = await get<IdRow>(`SELECT id FROM vehicles WHERE plate = ?`, ["KR1234A"]);
-  const v2 = await get<IdRow>(`SELECT id FROM vehicles WHERE plate = ?`, ["WA9876B"]);
-  const v3 = await get<IdRow>(`SELECT id FROM vehicles WHERE plate = ?`, ["GD4567C"]);
-  const v4 = await get<IdRow>(`SELECT id FROM vehicles WHERE plate = ?`, ["PO7654D"]);
-  const v5 = await get<IdRow>(`SELECT id FROM vehicles WHERE plate = ?`, ["LU1122E"]);
+  const allVehicles = await all<{ id: number; customer_id: number }>(
+    `SELECT id, customer_id FROM vehicles ORDER BY id ASC`
+  );
 
-  // ===== ORDERS (5) =====
-  const orders = [
-    { service: "Wymiana oleju i filtrów", status: "w_trakcie", opis: "Pełny serwis olejowy", customer_id: c1!.id, vehicle_id: v1!.id, mechanic_user_id: mechJan!.id, created_by_user_id: admin!.id, start_at: "2025-12-01 09:00", end_at: null },
-    { service: "Diagnostyka (check engine)", status: "nowe", opis: "Kontrolka silnika świeci", customer_id: c2!.id, vehicle_id: v2!.id, mechanic_user_id: mechAla!.id, created_by_user_id: admin!.id, start_at: "2025-12-01 11:00", end_at: null },
-    { service: "Klocki + tarcze przód", status: "w_trakcie", opis: "Hamowanie piszczy", customer_id: c3!.id, vehicle_id: v3!.id, mechanic_user_id: mechJan!.id, created_by_user_id: admin!.id, start_at: "2025-12-02 09:30", end_at: null },
-    { service: "Wymiana akumulatora", status: "zakonczone", opis: "Akumulator padł rano", customer_id: c4!.id, vehicle_id: v4!.id, mechanic_user_id: mechAla!.id, created_by_user_id: admin!.id, start_at: "2025-11-28 10:00", end_at: "2025-11-28 10:45" },
-    { service: "Serwis klimatyzacji", status: "nowe", opis: "Słabe chłodzenie", customer_id: c5!.id, vehicle_id: v5!.id, mechanic_user_id: null, created_by_user_id: admin!.id, start_at: null, end_at: null }
+
+  const orderServices = [
+    "Wymiana oleju i filtrów",
+    "Diagnostyka (check engine)",
+    "Klocki + tarcze przód",
+    "Wymiana akumulatora",
+    "Serwis klimatyzacji",
+    "Wymiana świec zapłonowych",
+    "Przegląd techniczny",
+    "Naprawa zawieszenia",
+    "Wymiana klocków hamulcowych"
   ];
+  const statuses = ["nowe", "w_trakcie", "zakonczone"];
 
-  for (const o of orders) {
+  for (let i = 0; i < 50; i++) {
+    const vehicle = allVehicles[i % allVehicles.length];
+    const customer = allCustomers[i % allCustomers.length];
+    const service = orderServices[i % orderServices.length];
+    const status = statuses[i % statuses.length];
+    const mechanic = mechanics[i % mechanics.length];
+
     await run(
       `INSERT INTO orders
         (service, status, opis, customer_id, vehicle_id, mechanic_user_id, created_by_user_id, start_at, end_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        o.service,
-        o.status,
-        o.opis ?? null,
-        o.customer_id,
-        o.vehicle_id,
-        o.mechanic_user_id ?? null,
-        o.created_by_user_id ?? null,
-        o.start_at ?? null,
-        o.end_at ?? null
+        service,
+        status,
+        `${service} - porządek nr ${i + 1}`,
+        customer.id,
+        vehicle.id,
+        mechanic,
+        admin!.id,
+        `2025-12-${String((i % 30) + 1).padStart(2, "0")} ${String(9 + (i % 8)).padStart(2, "0")}:00`,
+        status === "zakonczone" ? `2025-12-${String((i % 30) + 1).padStart(2, "0")} ${String(10 + (i % 8)).padStart(2, "0")}:30` : null
       ]
     );
   }
-  console.log("✅ Orders: 5");
+  console.log("✅ Orders: 50");
 
-  // pobierz id 5 ostatnich orderów (po delete będą od 1..5, ale robimy bezpiecznie)
-  const orderRows = await all<{ id: number; customer_id: number; vehicle_id: number }>(
-    `SELECT id, customer_id, vehicle_id FROM orders ORDER BY id ASC LIMIT 5`
+  const allOrders = await all<{ id: number; customer_id: number; vehicle_id: number }>(
+    `SELECT id, customer_id, vehicle_id FROM orders ORDER BY id ASC`
   );
-  const [o1, o2, o3, o4, o5] = orderRows;
 
-  // ===== APPOINTMENTS (5) =====
-  const appointments = [
-    { title: "Serwis Toyota Corolla", start_at: "2025-12-01 09:00", end_at: "2025-12-01 10:30", status: "zaplanowana", customer_id: c1!.id, vehicle_id: v1!.id, order_id: o1.id, notes: "Prośba o kontakt po diagnozie" },
-    { title: "Diagnostyka VW Golf", start_at: "2025-12-01 11:00", end_at: "2025-12-01 12:00", status: "zaplanowana", customer_id: c2!.id, vehicle_id: v2!.id, order_id: o2.id, notes: "" },
-    { title: "Hamulce Ford Transit", start_at: "2025-12-02 09:30", end_at: "2025-12-02 12:00", status: "zaplanowana", customer_id: c3!.id, vehicle_id: v3!.id, order_id: o3.id, notes: "Części przygotować wcześniej" },
-    { title: "Wymiana akumulatora BMW", start_at: "2025-11-28 10:00", end_at: "2025-11-28 10:45", status: "zakonczona", customer_id: c4!.id, vehicle_id: v4!.id, order_id: o4.id, notes: "Zakończono bez uwag" },
-    { title: "Klimatyzacja Audi A4", start_at: "2025-12-03 13:00", end_at: "2025-12-03 14:00", status: "zaplanowana", customer_id: c5!.id, vehicle_id: v5!.id, order_id: o5.id, notes: "Sprawdzić szczelność" }
-  ];
 
-  for (const a of appointments) {
+  const appointmentStatuses = ["zaplanowana", "zakonczona", "anulowana"];
+
+  for (let i = 0; i < 50; i++) {
+    const order = allOrders[i % allOrders.length];
+    const status = appointmentStatuses[i % appointmentStatuses.length];
+    const day = (i % 28) + 1;
+
     await run(
       `INSERT INTO appointments (title, start_at, end_at, status, customer_id, vehicle_id, order_id, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [a.title, a.start_at, a.end_at ?? null, a.status, a.customer_id ?? null, a.vehicle_id ?? null, a.order_id ?? null, a.notes ?? null]
+      [
+        `Wizyta ${i + 1}: ${order.id}`,
+        `2025-12-${String(day).padStart(2, "0")} ${String(9 + (i % 8)).padStart(2, "0")}:00`,
+        `2025-12-${String(day).padStart(2, "0")} ${String(10 + (i % 8)).padStart(2, "0")}:30`,
+        status,
+        order.customer_id,
+        order.vehicle_id,
+        order.id,
+        `Wizyta nr ${i + 1} - notatka`
+      ]
     );
   }
-  console.log("✅ Appointments: 5");
+  console.log("✅ Appointments: 50");
 
-  // ===== PARTS (5) =====
-  await run(
-    `INSERT INTO parts (name, sku, brand, stock, min_stock, price, location)
-     VALUES
-     ('Filtr oleju', 'FO-001', 'Bosch', 5, 2, 39.99, 'Regał A1'),
-     ('Olej silnikowy 5W30', 'OIL-5W30-001', 'Castrol', 1, 3, 199.99, 'Magazyn Główny'),
-     ('Klocki hamulcowe przód', 'BRK-PAD-F-001', 'ATE', 0, 2, 249.00, 'Regał B2'),
-     ('Tarcze hamulcowe przód', 'BRK-DISC-F-001', 'Zimmermann', 2, 2, 399.00, 'Regał B3'),
-     ('Akumulator 74Ah', 'BAT-74-001', 'Varta', 3, 1, 499.00, 'Regał C1')`
-  );
-  console.log("✅ Parts: 5");
 
-  // ===== INVOICES (5) =====
-  const invoices = [
-    { number: "FV/2025/001", customer_id: c1!.id, order_id: o1.id, issue_date: "2025-12-01", due_date: "2025-12-14", amount: 499.99, status: "oczekuje", pdf_path: null },
-    { number: "FV/2025/002", customer_id: c2!.id, order_id: o2.id, issue_date: "2025-12-01", due_date: "2025-12-14", amount: 199.99, status: "oczekuje", pdf_path: null },
-    { number: "FV/2025/003", customer_id: c3!.id, order_id: o3.id, issue_date: "2025-12-02", due_date: "2025-12-16", amount: 1299.00, status: "oczekuje", pdf_path: null },
-    { number: "FV/2025/004", customer_id: c4!.id, order_id: o4.id, issue_date: "2025-11-28", due_date: "2025-12-05", amount: 650.00, status: "zaplacona", pdf_path: null },
-    { number: "FV/2025/005", customer_id: c5!.id, order_id: o5.id, issue_date: "2025-12-03", due_date: "2025-12-17", amount: 349.00, status: "oczekuje", pdf_path: null }
+  const partNames = [
+    "Filtr oleju", "Olej silnikowy 5W30", "Klocki hamulcowe przód", "Tarcze hamulcowe przód",
+    "Akumulator 74Ah", "Świeca zapłonowa", "Filtr powietrza", "Filtr salonu", "Płyn chłodniczy",
+    "Pasek rozrządu", "Tarcza sprzęgła", "Komplet uszczelniacz", "Płyn hamulcowy"
   ];
+  const brands = ["Bosch", "Castrol", "ATE", "Zimmermann", "Varta", "NGK", "Hengst", "Brembo"];
 
-  for (const i of invoices) {
+  for (let i = 1; i <= 50; i++) {
+    const part = partNames[i % partNames.length];
+    const brand = brands[i % brands.length];
+    
+    await run(
+      `INSERT INTO parts (name, sku, brand, stock, min_stock, price, location)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        `${part} ${i}`,
+        `PART-${String(i).padStart(6, "0")}`,
+        brand,
+        Math.floor(Math.random() * 20),
+        2,
+        Math.round((50 + Math.random() * 450) * 100) / 100,
+        `Regał ${String.fromCharCode(65 + (i % 5))}${(i % 10) + 1}`
+      ]
+    );
+  }
+  console.log("✅ Parts: 50");
+
+
+  for (let i = 0; i < 50; i++) {
+    const order = allOrders[i % allOrders.length];
+    const invoiceStatuses = ["oczekuje", "zaplacona", "anulowana"];
+    const status = invoiceStatuses[i % invoiceStatuses.length];
+    const day = (i % 28) + 1;
+
     await run(
       `INSERT INTO invoices (number, customer_id, order_id, issue_date, due_date, amount, status, pdf_path)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [i.number, i.customer_id, i.order_id ?? null, i.issue_date, i.due_date ?? null, i.amount, i.status, i.pdf_path]
+      [
+        `FV/2025/${String(i + 1).padStart(3, "0")}`,
+        order.customer_id,
+        order.id,
+        `2025-12-${String(day).padStart(2, "0")}`,
+        `2025-12-${String((day + 13) % 28 + 1).padStart(2, "0")}`,
+        Math.round((100 + Math.random() * 1500) * 100) / 100,
+        status,
+        null
+      ]
     );
   }
-  console.log("✅ Invoices: 5");
+  console.log("✅ Invoices: 50");
 
-  // ===== MESSAGE THREADS (5) =====
-  const threads = [
-    { title: "Kontakt: Toyota Corolla", customer_id: c1!.id, order_id: o1.id, created_by_user_id: admin!.id },
-    { title: "Kontakt: VW Golf", customer_id: c2!.id, order_id: o2.id, created_by_user_id: admin!.id },
-    { title: "Kontakt: Ford Transit", customer_id: c3!.id, order_id: o3.id, created_by_user_id: admin!.id },
-    { title: "Kontakt: BMW 3", customer_id: c4!.id, order_id: o4.id, created_by_user_id: admin!.id },
-    { title: "Kontakt: Audi A4", customer_id: c5!.id, order_id: o5.id, created_by_user_id: admin!.id }
-  ];
 
-  for (const t of threads) {
+  for (let i = 0; i < 50; i++) {
+    const order = allOrders[i % allOrders.length];
+    const thread = {
+      title: `Konwersacja ${i + 1}: Order ${order.id}`,
+      customer_id: order.customer_id,
+      order_id: order.id,
+      created_by_user_id: admin!.id
+    };
+    
     await run(
       `INSERT INTO message_threads (title, customer_id, order_id, created_by_user_id, updated_at)
        VALUES (?, ?, ?, ?, datetime('now'))`,
-      [t.title, t.customer_id ?? null, t.order_id ?? null, t.created_by_user_id ?? null]
+      [thread.title, thread.customer_id, thread.order_id, thread.created_by_user_id]
     );
   }
-  console.log("✅ Threads: 5");
+  console.log("✅ Threads: 50");
 
-  const threadRows = await all<{ id: number }>(`SELECT id FROM message_threads ORDER BY id ASC LIMIT 5`);
+  const allThreads = await all<{ id: number }>(
+    `SELECT id FROM message_threads ORDER BY id ASC`
+  );
 
-  // ===== MESSAGES (5) =====
-  const messages = [
-    { thread_id: threadRows[0].id, sender_user_id: mechJan!.id, text: "Dzień dobry, zaczynamy serwis olejowy. Dam znać po sprawdzeniu filtrów." },
-    { thread_id: threadRows[1].id, sender_user_id: mechAla!.id, text: "Proszę o informację, kiedy pojawiła się kontrolka check engine." },
-    { thread_id: threadRows[2].id, sender_user_id: mechJan!.id, text: "Hamulce do wymiany — klocki i tarcze. Potwierdzam części z magazynu." },
-    { thread_id: threadRows[3].id, sender_user_id: mechAla!.id, text: "Akumulator wymieniony, proszę obserwować czy nie ma spadków napięcia." },
-    { thread_id: threadRows[4].id, sender_user_id: admin!.id, text: "Klimatyzacja zaplanowana. Proszę przyjechać 10 min wcześniej." }
+
+  const messageTexts = [
+    "Dzień dobry, zaczynamy serwis.",
+    "Jakie są problemy z pojazdem?",
+    "Wymieniamy części, proszę czekać.",
+    "Diagnostyka wykazała...",
+    "Wszystko gotowe, proszę przyjechać.",
+    "Pytanie dot. serwisu?",
+    "Potwierdzam termin wizyty.",
+    "Proszę o informację o postępie.",
+    "Czy jest możliwość szybszego terminu?",
+    "Faktura wysłana na maila."
   ];
 
-  for (const m of messages) {
+  for (let i = 0; i < 50; i++) {
+    const thread = allThreads[i % allThreads.length];
+    const mechanic = mechanics[i % mechanics.length];
+    const message = messageTexts[i % messageTexts.length];
+
     await run(
       `INSERT INTO messages (thread_id, sender_user_id, sender_customer_id, text)
        VALUES (?, ?, ?, ?)`,
-      [m.thread_id, m.sender_user_id ?? null, null, m.text]
+      [thread.id, mechanic, null, `${message} (msg ${i + 1})`]
     );
-    await run(`UPDATE message_threads SET updated_at = datetime('now') WHERE id = ?`, [m.thread_id]);
+    
+    await run(`UPDATE message_threads SET updated_at = datetime('now') WHERE id = ?`, [thread.id]);
   }
-  console.log("✅ Messages: 5");
+  console.log("✅ Messages: 50");
 
-  // ===== NOTIFICATIONS (5) =====
-  const notifTargets = await all<{ id: number }>(`SELECT id FROM users ORDER BY id ASC LIMIT 5`);
 
-  const notifications = [
-    { user_id: notifTargets[0].id, title: "Panel admin", body: "Masz nowe zgłoszenie od klienta (Toyota Corolla)." },
-    { user_id: notifTargets[1].id, title: "Nowe zlecenie", body: "Przypisano Ci zlecenie: Wymiana oleju i filtrów." },
-    { user_id: notifTargets[2].id, title: "Diagnostyka", body: "Do wykonania: Diagnostyka (check engine) - VW Golf." },
-    { user_id: notifTargets[3].id, title: "Magazyn", body: "Część BRK-PAD-F-001 poniżej minimum (stan 0)." },
-    { user_id: notifTargets[4].id, title: "Faktury", body: "Nowa faktura wystawiona: FV/2025/005." }
+  const notificationTitles = [
+    "Panel admin",
+    "Nowe zlecenie",
+    "Diagnostyka",
+    "Magazyn",
+    "Faktury",
+    "Wiadomość",
+    "Wizyta",
+    "Status"
   ];
 
-  for (const n of notifications) {
+  const notifUsers = await all<{ id: number }>(
+    `SELECT id FROM users ORDER BY id ASC LIMIT 50`
+  );
+
+  for (let i = 0; i < Math.min(50, notifUsers.length); i++) {
+    const title = notificationTitles[i % notificationTitles.length];
+    
     await run(
       `INSERT INTO notifications (user_id, title, body)
        VALUES (?, ?, ?)`,
-      [n.user_id, n.title, n.body]
+      [
+        notifUsers[i].id,
+        title,
+        `Powiadomienie ${i + 1}: ${title} - nowa wiadomość do przeczytania.`
+      ]
     );
   }
-  console.log("✅ Notifications: 5");
+  console.log("✅ Notifications: 50");
 
-  console.log("✨ Database seeded successfully (5 per table)!");
+
+  const categories = [
+    "Hamulce", "Filtry", "Oleje", "Zawieszenie", "Silnik", 
+    "Klimatyzacja", "Elektryka", "Oświetlenie", "Paliwo", "Inne"
+  ];
+
+  for (const cat of categories) {
+    await run(
+      `INSERT INTO part_categories (name, description)
+       VALUES (?, ?)`,
+      [cat, `Kategoria części: ${cat}`]
+    );
+  }
+  console.log("✅ Part Categories: 10");
+
+  const allCategories = await all<IdRow>(`SELECT id FROM part_categories ORDER BY id ASC`);
+
+
+  const services = [
+    { name: "Wymiana oleju", price: 150, hours: 1 },
+    { name: "Diagnostyka", price: 80, hours: 1 },
+    { name: "Wymiana klocków", price: 350, hours: 2 },
+    { name: "Wymiana tarcz", price: 400, hours: 2.5 },
+    { name: "Wymiana akumulatora", price: 200, hours: 1 },
+    { name: "Przegląd techniczny", price: 250, hours: 2 },
+    { name: "Serwis klimatyzacji", price: 300, hours: 2 },
+    { name: "Wymiana świec", price: 120, hours: 1 },
+    { name: "Naprawa zawieszenia", price: 500, hours: 4 },
+    { name: "Wymiana filtra powietrza", price: 80, hours: 0.5 }
+  ];
+
+  for (const svc of services) {
+    await run(
+      `INSERT INTO service_prices (name, description, base_price, labor_hours, is_active)
+       VALUES (?, ?, ?, ?, ?)`,
+      [svc.name, `Usługa: ${svc.name}`, svc.price, svc.hours, 1]
+    );
+  }
+  console.log("✅ Service Prices: 10");
+
+
+  for (let i = 0; i < 50; i++) {
+    const vehicle = allVehicles[i % allVehicles.length];
+    const mechanic = mechanics[i % mechanics.length];
+    const day = (i % 28) + 1;
+
+    await run(
+      `INSERT INTO vehicle_history (vehicle_id, service_type, description, date_performed, mechanic_user_id, cost, parts_used, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        vehicle.id,
+        services[i % services.length].name,
+        `Historia serwisu nr ${i + 1}`,
+        `2025-12-${String(day).padStart(2, "0")}`,
+        mechanic,
+        Math.round((80 + Math.random() * 500) * 100) / 100,
+        `Część ${i + 1}`,
+        `Notatka serwisowa nr ${i + 1}`
+      ]
+    );
+  }
+  console.log("✅ Vehicle History: 50");
+
+
+  const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
+
+  for (let i = 0; i < 50; i++) {
+    const user = userRows[i % userRows.length];
+    const day = daysOfWeek[i % daysOfWeek.length];
+    const isAvailable = i % 7 !== 6 ? 1 : 0; // Niedziela niedostępna
+
+    await run(
+      `INSERT INTO employee_schedule (user_id, day_of_week, start_time, end_time, is_available)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        user.id,
+        day,
+        `${String(8 + (i % 4)).padStart(2, "0")}:00`,
+        `${String(16 + (i % 4)).padStart(2, "0")}:00`,
+        isAvailable
+      ]
+    );
+  }
+  console.log("✅ Employee Schedule: 50");
+
+
+  const supplierNames = [
+    "Auto Parts Sp. z o.o.", "Części Samochodowe Plus", "Serwis Import",
+    "SupplyCar Polska", "Mechanic Store", "Auto Express", "Parts World",
+    "Spare Parts Depot", "Car Components Ltd", "Premium Parts Center",
+    "Logistics Auto", "Quality Spares", "Direct Parts Supply", "Wholesale Motors", "Trade Auto Parts"
+  ];
+
+  for (let i = 0; i < 15; i++) {
+    const supplier = supplierNames[i];
+    
+    await run(
+      `INSERT INTO suppliers (name, contact_person, email, phone, address, city, postal_code, payment_terms, rating, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        supplier,
+        `Osoba${i + 1}`,
+        `contact${i + 1}@supplier.com`,
+        `+48${String(600000000 + i * 1000000).padStart(9, "0")}`,
+        `Ulica ${i + 1}`,
+        ["Warszawa", "Kraków", "Poznań", "Wrocław", "Gdańsk"][i % 5],
+        `${String(30000 + i * 100).padStart(5, "0")}`,
+        "30 dni",
+        Math.round((3 + Math.random() * 2) * 10) / 10,
+        1
+      ]
+    );
+  }
+  console.log("✅ Suppliers: 15");
+
+
+  for (let i = 0; i < 50; i++) {
+    const customer = allCustomers[i % allCustomers.length];
+    const mechanic = mechanics[i % mechanics.length];
+    const order = allOrders[i % allOrders.length];
+
+    await run(
+      `INSERT INTO ratings (customer_id, mechanic_user_id, order_id, rating_score, comment, is_anonymous)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        customer.id,
+        mechanic,
+        order.id,
+        Math.floor(3 + Math.random() * 3), // 3-5 gwiazdek
+        `Opinia klienta nr ${i + 1}: Dobra robota, profesjonalny serwis`,
+        i % 10 === 0 ? 1 : 0
+      ]
+    );
+  }
+  console.log("✅ Ratings: 50");
+
+
+  const emailTemplates = [
+    {
+      name: "Potwierdzenie rezerwacji",
+      subject: "Potwierdzenie Twojej wizyty",
+      type: "appointment_confirmation",
+      body: "Cześć {customer_name},\n\nTwoja wizyta została potwierdzona na dzień {date} o godzinie {time}.\n\nPozdrawiamy,\nSerwis AutoRepair"
+    },
+    {
+      name: "Faktury wysłane",
+      subject: "Twoja faktura nr {invoice_number}",
+      type: "invoice_sent",
+      body: "Szanowny Panie/Pani,\n\nW załączniku wysyłamy Pani(u) fakturę na kwotę {amount} zł.\n\nPozdrawiamy,\nAutoRepair"
+    },
+    {
+      name: "Zlecenie gotowe",
+      subject: "Twoje zlecenie jest gotowe",
+      type: "order_ready",
+      body: "Cześć {customer_name},\n\nTwój pojazd {vehicle} jest gotowy do odbioru!\n\nPozdrawiamy,\nAutoRepair"
+    },
+    {
+      name: "Przypomnienie wizyty",
+      subject: "Przypomnij sobie o zaplanowanej wizycie",
+      type: "appointment_reminder",
+      body: "Cześć {customer_name},\n\nPamiętaj o wizycie jutro o godzinie {time}!\n\nPozdrawiamy,\nAutoRepair"
+    },
+    {
+      name: "Wiadomość od serwisu",
+      subject: "Wiadomość od serwisu AutoRepair",
+      type: "service_message",
+      body: "{message}"
+    },
+    {
+      name: "Nowy mechanik",
+      subject: "Witaj w zespole AutoRepair",
+      type: "welcome_employee",
+      body: "Cześć {employee_name},\n\nWitamy Cię w naszym zespole!\n\nPozdrawiamy,\nZarząd"
+    }
+  ];
+
+  for (const tpl of emailTemplates) {
+    await run(
+      `INSERT INTO email_templates (name, subject, body, template_type, is_active)
+       VALUES (?, ?, ?, ?, ?)`,
+      [tpl.name, tpl.subject, tpl.body, tpl.type, 1]
+    );
+  }
+  console.log("✅ Email Templates: 6");
+
+
+  for (let i = 0; i < 30; i++) {
+    const day = (i % 28) + 1;
+    const topMechanic = mechanics[i % mechanics.length];
+
+    await run(
+      `INSERT INTO analytics (date, total_revenue, total_orders, total_appointments, completed_orders, average_rating, top_service, top_mechanic_id, new_customers)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        `2025-12-${String(day).padStart(2, "0")}`,
+        Math.round((5000 + Math.random() * 15000) * 100) / 100,
+        Math.floor(10 + Math.random() * 20),
+        Math.floor(5 + Math.random() * 10),
+        Math.floor(8 + Math.random() * 10),
+        Math.round((4 + Math.random() * 1) * 10) / 10,
+        services[i % services.length].name,
+        topMechanic,
+        Math.floor(Math.random() * 5)
+      ]
+    );
+  }
+  console.log("✅ Analytics: 30");
+
+  console.log("✨ Database seeded successfully (50 per table)!");
 }
 
 main().catch((e) => {
   console.error("❌ Seed failed:", e);
   process.exit(1);
 });
+

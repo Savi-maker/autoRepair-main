@@ -1,8 +1,6 @@
-export const API_URL = (import.meta as any).env?.VITE_API_URL || "/api";
+﻿export const API_URL = (import.meta as any).env?.VITE_API_URL || "/api";
 
-/* =========================
-   TYPES
-   ========================= */
+
 
 export interface ProfileType {
   id: number;
@@ -124,11 +122,15 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   allowed?: string[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
-/* =========================
-   TOKEN
-   ========================= */
+
 
 export function getToken(): string | null {
   return localStorage.getItem("token");
@@ -142,9 +144,7 @@ export function removeToken(): void {
   localStorage.removeItem("token");
 }
 
-/* =========================
-   CORE FETCH
-   ========================= */
+
 
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
   const token = getToken();
@@ -164,7 +164,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<Api
     try {
       json = text ? JSON.parse(text) : null;
     } catch (e) {
-      // response is not valid JSON (e.g. HTML error page); keep text for diagnostics
+
       json = null;
     }
 
@@ -179,7 +179,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<Api
 
     if (json && typeof json.success === "boolean") return json as ApiResponse<T>;
 
-    // if response was successful but not JSON, return the text as data for debugging
+
     if (!json && text) return { success: true, message: "OK", data: (text as unknown) as T };
 
     return { success: true, message: "OK", data: json as T };
@@ -188,9 +188,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<Api
   }
 }
 
-/* =========================
-   AUTH
-   ========================= */
+
 
 export async function login(email: string, password: string): Promise<ApiResponse<{ token: string; user: any }>> {
   const resp = await apiFetch<{ token: string; user: any }>("/auth/login", {
@@ -232,9 +230,7 @@ export async function logout(): Promise<ApiResponse> {
   return { success: true, message: "Wylogowano" };
 }
 
-/* =========================
-   PROFILE / ME
-   ========================= */
+
 
 export async function getMyProfile(): Promise<ProfileType> {
   const resp = await apiFetch<ProfileType>("/profile", { method: "GET" });
@@ -246,12 +242,14 @@ export function updateMyProfile(data: Partial<Pick<ProfileType, "imie" | "nazwis
   return apiFetch<ProfileType>("/profile", { method: "PATCH", body: JSON.stringify(data) });
 }
 
-/* =========================
-   ORDERS
-   ========================= */
 
-export function getOrders(): Promise<ApiResponse<OrderType[]>> {
-  return apiFetch<OrderType[]>("/orders", { method: "GET" });
+
+export function getOrders(page?: number, limit?: number): Promise<ApiResponse<OrderType[]>> {
+  const params = new URLSearchParams();
+  if (page !== undefined) params.append("page", String(page));
+  if (limit !== undefined) params.append("limit", String(limit));
+  const query = params.toString();
+  return apiFetch<OrderType[]>(`/orders${query ? "?" + query : ""}`, { method: "GET" });
 }
 
 export function getOrderById(id: number): Promise<ApiResponse<OrderType>> {
@@ -278,12 +276,14 @@ export function deleteOrder(id: number): Promise<ApiResponse> {
   return apiFetch(`/orders/${id}`, { method: "DELETE" });
 }
 
-/* =========================
-   CUSTOMERS
-   ========================= */
 
-export function getCustomers(): Promise<ApiResponse<CustomerType[]>> {
-  return apiFetch<CustomerType[]>("/customers", { method: "GET" });
+
+export function getCustomers(page?: number, limit?: number): Promise<ApiResponse<CustomerType[]>> {
+  const params = new URLSearchParams();
+  if (page !== undefined) params.append("page", String(page));
+  if (limit !== undefined) params.append("limit", String(limit));
+  const query = params.toString();
+  return apiFetch<CustomerType[]>(`/customers${query ? "?" + query : ""}`, { method: "GET" });
 }
 
 export function createCustomer(data: { name: string; email?: string; phone?: string; notes?: string }): Promise<ApiResponse<CustomerType>> {
@@ -298,12 +298,14 @@ export function deleteCustomer(id: number): Promise<ApiResponse> {
   return apiFetch(`/customers/${id}`, { method: "DELETE" });
 }
 
-/* =========================
-   VEHICLES
-   ========================= */
 
-export function getVehicles(): Promise<ApiResponse<VehicleType[]>> {
-  return apiFetch<VehicleType[]>("/vehicles", { method: "GET" });
+
+export function getVehicles(page?: number, limit?: number): Promise<ApiResponse<VehicleType[]>> {
+  const params = new URLSearchParams();
+  if (page !== undefined) params.append("page", String(page));
+  if (limit !== undefined) params.append("limit", String(limit));
+  const query = params.toString();
+  return apiFetch<VehicleType[]>(`/vehicles${query ? "?" + query : ""}`, { method: "GET" });
 }
 
 export function createVehicle(data: {
@@ -325,12 +327,14 @@ export function deleteVehicle(id: number): Promise<ApiResponse> {
   return apiFetch(`/vehicles/${id}`, { method: "DELETE" });
 }
 
-/* =========================
-   APPOINTMENTS
-   ========================= */
 
-export function getAppointments(): Promise<ApiResponse<AppointmentType[]>> {
-  return apiFetch<AppointmentType[]>("/appointments", { method: "GET" });
+
+export function getAppointments(page?: number, limit?: number): Promise<ApiResponse<AppointmentType[]>> {
+  const params = new URLSearchParams();
+  if (page !== undefined) params.append("page", String(page));
+  if (limit !== undefined) params.append("limit", String(limit));
+  const query = params.toString();
+  return apiFetch<AppointmentType[]>(`/appointments${query ? "?" + query : ""}`, { method: "GET" });
 }
 
 export function createAppointment(data: Partial<AppointmentType>): Promise<ApiResponse<AppointmentType>> {
@@ -345,9 +349,7 @@ export function deleteAppointment(id: number): Promise<ApiResponse> {
   return apiFetch(`/appointments/${id}`, { method: "DELETE" });
 }
 
-/* =========================
-   PARTS (MAGAZYN)
-   ========================= */
+
 
 export function getParts(): Promise<ApiResponse<PartType[]>> {
   return apiFetch<PartType[]>("/parts", { method: "GET" });
@@ -369,9 +371,7 @@ export function deletePart(id: number): Promise<ApiResponse> {
   return apiFetch(`/parts/${id}`, { method: "DELETE" });
 }
 
-/* =========================
-   INVOICES
-   ========================= */
+
 
 export function getInvoices(): Promise<ApiResponse<InvoiceType[]>> {
   return apiFetch<InvoiceType[]>("/invoices", { method: "GET" });
@@ -389,9 +389,7 @@ export function deleteInvoice(id: number): Promise<ApiResponse> {
   return apiFetch(`/invoices/${id}`, { method: "DELETE" });
 }
 
-/* =========================
-   NOTIFICATIONS
-   ========================= */
+
 
 export function getNotifications(): Promise<ApiResponse<NotificationType[]>> {
   return apiFetch<NotificationType[]>("/notifications", { method: "GET" });
@@ -409,9 +407,7 @@ export function deleteNotification(id: number): Promise<ApiResponse> {
   return apiFetch(`/notifications/${id}`, { method: "DELETE" });
 }
 
-/* =========================
-   MESSAGES (CHAT)
-   ========================= */
+
 
 export function getThreads(q?: string): Promise<ApiResponse<ThreadType[]>> {
   const qs = q ? `?q=${encodeURIComponent(q)}` : "";
@@ -433,9 +429,7 @@ export function sendMessage(threadId: number, text: string): Promise<ApiResponse
   });
 }
 
-/* =========================
-   ADMIN USERS
-   ========================= */
+
 
 export interface AdminUserType {
   id: number;
@@ -471,3 +465,4 @@ export function updateUserAdmin(id: number, data: Partial<Pick<AdminUserType, "r
 export function adminResetUserPassword(data: { mail: string; imie: string; nowe_haslo: string }): Promise<ApiResponse> {
   return resetPassword(data);
 }
+

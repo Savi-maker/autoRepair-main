@@ -1,4 +1,4 @@
-import type { Response } from "express";
+﻿import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
 import { all, get, run } from "../db.js";
 
@@ -8,21 +8,57 @@ export async function listAppointments(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
-    const rows = await all(
-      `SELECT
-        a.id, a.title, a.start_at, a.end_at, a.status, a.notes, a.created_at,
-        a.customer_id, a.vehicle_id, a.order_id,
-        c.name AS customer_name,
-        v.make AS vehicle_make,
-        v.model AS vehicle_model,
-        v.plate AS vehicle_plate
-      FROM appointments a
-      LEFT JOIN customers c ON c.id = a.customer_id
-      LEFT JOIN vehicles v ON v.id = a.vehicle_id
-      ORDER BY a.start_at ASC`
-    );
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
 
-    return res.json({ success: true, message: "OK", data: rows });
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({ success: false, message: "Nieprawidłowe page/limit" });
+    }
+
+    const offset = (page - 1) * limit;
+
+    const isCustomer = req.user.rola === "user";
+    const customerId = req.user.customer_id;
+
+    let query = `SELECT
+      a.id, a.title, a.start_at, a.end_at, a.status, a.notes, a.created_at,
+      a.customer_id, a.vehicle_id, a.order_id,
+      c.name AS customer_name,
+      v.make AS vehicle_make,
+      v.model AS vehicle_model,
+      v.plate AS vehicle_plate
+    FROM appointments a
+    LEFT JOIN customers c ON c.id = a.customer_id
+    LEFT JOIN vehicles v ON v.id = a.vehicle_id`;
+
+    let params: any[] = [];
+
+    if (isCustomer && customerId) {
+      query += ` WHERE a.customer_id = ?`;
+      params = [customerId];
+    }
+
+    query += ` ORDER BY a.start_at ASC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+
+    const rows = await all(query, params);
+
+    let countQuery = `SELECT COUNT(*) as total FROM appointments a`;
+    let countParams: any[] = [];
+    if (isCustomer && customerId) {
+      countQuery += ` WHERE a.customer_id = ?`;
+      countParams = [customerId];
+    }
+    const countRow = await get(countQuery, countParams);
+    const total = countRow?.total || 0;
+    const totalPages = Math.ceil(total / limit);
+
+    return res.json({
+      success: true,
+      message: "OK",
+      data: rows,
+      pagination: { page, limit, total, totalPages }
+    });
   } catch (e: any) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }
@@ -69,8 +105,14 @@ export async function createAppointment(req: AuthRequest, res: Response) {
     if (!title || !start_at) {
       return res.status(400).json({
         success: false,
-        message: "Brak pól: title, start_at"
+        message: "Brak pĂłl: title, start_at"
       });
+    }
+
+
+    const isCustomer = req.user.rola === "user";
+    if (isCustomer && customer_id && customer_id !== req.user.customer_id) {
+      return res.status(403).json({ error: "Nie możesz tworzyć wizyt dla innych klientów" });
     }
 
     if (status != null && !allowedStatuses.has(String(status))) {
@@ -200,3 +242,4 @@ export async function deleteAppointment(req: AuthRequest, res: Response) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }
 }
+

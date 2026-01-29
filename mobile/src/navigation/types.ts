@@ -1,4 +1,4 @@
-export type RootStackParamList = {
+﻿export type RootStackParamList = {
   Home: undefined;
   Login: undefined;
   Register: undefined;
@@ -65,4 +65,5 @@ export interface Visit {
   customerId?: string;
   status?: OrderStatus;
 }
+
 

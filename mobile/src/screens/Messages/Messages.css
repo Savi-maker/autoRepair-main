@@ -2,14 +2,14 @@
   min-height: 100vh;
   display: grid;
   grid-template-columns: 320px 1fr;
-  background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #2a2a2a 100%);
-  color: #fff;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
+  color: var(--text-primary);
 }
 
 .msg-left {
   border-right: 1px solid rgba(255,102,0,0.12);
   padding: 18px;
-  background: linear-gradient(90deg, #1a1a1a 0%, #1e1e1e 100%);
+  background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -18,7 +18,7 @@
 
 .msg-left-head {
   font-weight: 900;
-  color: #ff6600;
+  color: var(--accent-primary);
   letter-spacing: -.3px;
   display: flex;
   align-items: center;
@@ -34,9 +34,9 @@
   flex: 1;
   padding: 10px 12px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #111 0%, #1f1f1f 100%);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   border: 1px solid rgba(255,102,0,0.14);
-  color: #fff;
+  color: var(--text-primary);
   outline: none;
 }
 
@@ -47,7 +47,7 @@
 
 .msg-btn-ghost {
   background: transparent;
-  color: #ffcc99;
+  color: var(--accent-secondary);
   border: 1px solid rgba(255,102,0,0.35);
   padding: 10px 14px;
   border-radius: 10px;
@@ -93,7 +93,7 @@
 }
 
 .thread {
-  background: linear-gradient(135deg, #151515 0%, #222 100%);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
   border: 1px solid rgba(255,102,0,0.12);
   border-radius: 12px;
   padding: 12px;

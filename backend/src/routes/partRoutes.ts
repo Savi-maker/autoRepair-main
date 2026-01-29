@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import {
   listParts,
@@ -19,3 +19,4 @@ router.patch("/:id", requireAuth, updatePart);
 router.delete("/:id", requireAuth, deletePart);
 
 export default router;
+

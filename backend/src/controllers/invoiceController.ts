@@ -1,5 +1,6 @@
-import type { Response } from "express";
+﻿import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
+import { normalizeRole } from "../middleware/auth.js";
 import { all, get, run } from "../db.js";
 
 const allowedStatuses = new Set(["oczekuje", "zaplacona", "anulowana", "przeterminowana"]);
@@ -7,6 +8,10 @@ const allowedStatuses = new Set(["oczekuje", "zaplacona", "anulowana", "przeterm
 export async function listInvoices(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
+
+    const role = normalizeRole(req.user.rola);
+    const canView = role === "admin" || role === "kierownik" || role === "recepcja";
+    if (!canView) return res.status(403).json({ success: false, message: "Brak uprawnień" });
 
     const q = String((req.query.q ?? "") as string).trim();
 
@@ -44,6 +49,10 @@ export async function getInvoiceById(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
+    const role = normalizeRole(req.user.rola);
+    const canView = role === "admin" || role === "kierownik" || role === "recepcja";
+    if (!canView) return res.status(403).json({ success: false, message: "Brak uprawnień" });
+
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
 
@@ -74,12 +83,17 @@ export async function createInvoice(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
+    const role = normalizeRole(req.user.rola);
+    if (role !== "admin" && role !== "kierownik") {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
+
     const { number, customer_id, order_id, issue_date, due_date, amount, status, pdf_path } = req.body ?? {};
 
     if (!number || !customer_id || !issue_date || amount == null) {
       return res.status(400).json({
         success: false,
-        message: "Brak pól: number, customer_id, issue_date, amount"
+        message: "Brak pĂłl: number, customer_id, issue_date, amount"
       });
     }
 
@@ -132,6 +146,11 @@ export async function createInvoice(req: AuthRequest, res: Response) {
 export async function updateInvoice(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
+
+    const role = normalizeRole(req.user.rola);
+    if (role !== "admin" && role !== "kierownik") {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
 
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
@@ -233,6 +252,11 @@ export async function deleteInvoice(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
+    const role = normalizeRole(req.user.rola);
+    if (role !== "admin" && role !== "kierownik") {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
+
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
 
@@ -246,3 +270,4 @@ export async function deleteInvoice(req: AuthRequest, res: Response) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }
 }
+

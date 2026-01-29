@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import AppButton from '../../components/AppButton/AppButton'
 import './Magazyn.css'
 import { getParts, createPart, updatePart, deletePart, type PartType } from '../../utils/api'
 
@@ -8,6 +10,7 @@ function toMoney(v: number) {
 }
 
 export default function Magazyn() {
+  const navigate = useNavigate()
   const [q, setQ] = useState('')
   const [onlyLow, setOnlyLow] = useState(false)
 
@@ -15,13 +18,13 @@ export default function Magazyn() {
   const [error, setError] = useState<string | null>(null)
   const [parts, setParts] = useState<PartType[]>([])
 
-  // MODAL: add/edit
+
   const [openPartModal, setOpenPartModal] = useState(false)
   const [editing, setEditing] = useState<PartType | null>(null)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
-  // fields
+
   const [pName, setPName] = useState('')
   const [pSku, setPSku] = useState('')
   const [pBrand, setPBrand] = useState('')
@@ -30,14 +33,14 @@ export default function Magazyn() {
   const [pPrice, setPPrice] = useState<string>('0')
   const [pLocation, setPLocation] = useState('')
 
-  // MODAL: reserve
+
   const [openReserve, setOpenReserve] = useState(false)
   const [reservePart, setReservePart] = useState<PartType | null>(null)
   const [reserveQty, setReserveQty] = useState<string>('1')
   const [reserveError, setReserveError] = useState<string | null>(null)
   const [reserving, setReserving] = useState(false)
 
-  // MODAL: order (UI)
+
   const [openOrder, setOpenOrder] = useState(false)
   const [orderPart, setOrderPart] = useState<PartType | null>(null)
   const [orderQty, setOrderQty] = useState<string>('1')
@@ -183,7 +186,7 @@ export default function Magazyn() {
     }
   }
 
-  // ===== Reserve (real action: PATCH stock) =====
+
 
   const openReserveModal = (p: PartType) => {
     setReservePart(p)
@@ -210,7 +213,7 @@ export default function Magazyn() {
 
     const newStock = reservePart.stock - qty
 
-    // optimistic
+
     const prev = parts
     setParts((ps) => ps.map((x) => (x.id === reservePart.id ? { ...x, stock: newStock } : x)))
 
@@ -232,7 +235,7 @@ export default function Magazyn() {
     closeReserveModal()
   }
 
-  // ===== Order (UI only) =====
+
 
   const openOrderModal = (p: PartType) => {
     setOrderPart(p)
@@ -258,7 +261,7 @@ export default function Magazyn() {
     const qty = Math.floor(Number(orderQty))
     if (!Number.isFinite(qty) || qty <= 0) return setOrderError('Podaj ilość > 0')
 
-    // Na razie tylko UI (zgodnie z ustaleniem). Tu później podepniemy tabelę zamówień/dostaw.
+
     alert(
       `Zamówienie (UI):\n\nCzęść: ${orderPart.name}\nSKU: ${orderPart.sku}\nIlość: ${qty}\nNotatka: ${orderNote.trim() || '—'}`
     )
@@ -268,6 +271,9 @@ export default function Magazyn() {
   return (
     <div className="magazyn-container">
       <div className="magazyn-header">
+        <AppButton variant="back" onClick={() => navigate(-1)}>
+          ← Wróć
+        </AppButton>
         <h1>Magazyn części</h1>
         <div className="m-actions">
           <input

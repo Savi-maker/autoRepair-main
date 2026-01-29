@@ -1,8 +1,11 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import AppButton from '../../components/AppButton/AppButton'
 import './Pojazdy.css'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Stage, ContactShadows, Environment } from '@react-three/drei'
 import CyberpunkCar from '../../components/models/cyberpunkCar'
+import { canUseWebGL } from '../../utils/webglDetect'
 
 import {
   getVehicles,
@@ -14,12 +17,20 @@ import {
 } from '../../utils/api'
 
 export default function Pojazdy() {
+  const navigate = useNavigate()
   const [q, setQ] = useState('')
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const [vehicles, setVehicles] = useState<VehicleType[]>([])
+  const [vehiclePage, setVehiclePage] = useState(1)
+  const [vehiclePagination, setVehiclePagination] = useState<any>({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 1
+  })
   const [customers, setCustomers] = useState<CustomerType[]>([])
 
   const [openAdd, setOpenAdd] = useState(false)
@@ -66,38 +77,45 @@ export default function Pojazdy() {
     setSelected(null)
   }
 
-  const reloadAll = async () => {
+  const reloadAll = async (page: number = 1) => {
     setLoading(true)
     setError(null)
 
-    const [vRes, cRes] = await Promise.all([getVehicles(), getCustomers()])
+    const results = await Promise.allSettled([getVehicles(page, 20), getCustomers()])
 
-    if (!vRes.success) {
-      setError(vRes.message || 'Błąd pobierania pojazdów')
-      setLoading(false)
-      return
+    const [vRes, cRes] = results
+
+    if (vRes.status === 'fulfilled' && vRes.value.success) {
+      setVehicles(vRes.value.data || [])
+      if (vRes.value.pagination) {
+        setVehiclePagination(vRes.value.pagination)
+      }
     }
-    if (!cRes.success) {
-      setError(cRes.message || 'Błąd pobierania klientów')
-      setLoading(false)
-      return
+    if (cRes.status === 'fulfilled' && cRes.value.success) {
+      setCustomers(cRes.value.data || [])
     }
 
-    setVehicles(vRes.data || [])
-    setCustomers(cRes.data || [])
+    const hasError = results.some(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success))
+    if (hasError) {
+      const failedLoads = []
+      if (vRes.status === 'rejected' || (vRes.status === 'fulfilled' && !vRes.value.success)) failedLoads.push('pojazdy')
+      if (cRes.status === 'rejected' || (cRes.status === 'fulfilled' && !cRes.value.success)) failedLoads.push('klienci')
+      setError(`Błąd pobierania: ${failedLoads.join(', ')}`)
+    }
+
     setLoading(false)
   }
 
   useEffect(() => {
     let alive = true
     ;(async () => {
-      await reloadAll()
+      await reloadAll(vehiclePage)
       if (!alive) return
     })()
     return () => {
       alive = false
     }
-  }, [])
+  }, [vehiclePage])
 
   const data = useMemo(() => {
     const qLower = q.trim().toLowerCase()
@@ -214,6 +232,11 @@ export default function Pojazdy() {
   return (
     <div className="pojazdy-container">
       <div className="pojazdy-header">
+        <div className="pojazdy-left">
+          <AppButton variant="back" onClick={() => navigate(-1)}>
+            ← Wróć
+          </AppButton>
+        </div>
         <h1>Pojazdy</h1>
         <div className="p-actions">
           <input
@@ -260,6 +283,51 @@ export default function Pojazdy() {
           )
         })}
       </div>
+
+      {vehiclePagination.totalPages > 1 && (
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          justifyContent: 'center', 
+          padding: '16px 0',
+          flexWrap: 'wrap',
+          alignItems: 'center'
+        }}>
+          <button 
+            onClick={() => setVehiclePage(p => Math.max(1, p - 1))}
+            disabled={vehiclePage === 1}
+            style={{
+              padding: '8px 16px',
+              background: vehiclePage === 1 ? '#555' : '#ff6600',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: vehiclePage === 1 ? 'not-allowed' : 'pointer',
+              opacity: vehiclePage === 1 ? 0.5 : 1,
+            }}
+          >
+            ← Poprzednia
+          </button>
+          <span style={{ color: '#ccc', fontSize: '14px' }}>
+            Strona <b>{vehiclePage}</b> z <b>{vehiclePagination.totalPages}</b>
+          </span>
+          <button 
+            onClick={() => setVehiclePage(p => p + 1)}
+            disabled={vehiclePage >= vehiclePagination.totalPages}
+            style={{
+              padding: '8px 16px',
+              background: vehiclePage >= vehiclePagination.totalPages ? '#555' : '#ff6600',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: vehiclePage >= vehiclePagination.totalPages ? 'not-allowed' : 'pointer',
+              opacity: vehiclePage >= vehiclePagination.totalPages ? 0.5 : 1,
+            }}
+          >
+            Następna →
+          </button>
+        </div>
+      )}
 
       {openAdd && (
         <div
@@ -573,22 +641,24 @@ export default function Pojazdy() {
 
       <section className="model-panel">
         <div className="model-canvas">
-          <Canvas shadows style={{ width: '100%', height: '100%' }} camera={{ position: [0, 1.2, 1.8], fov: 38 }}>
-            <ambientLight intensity={0.45} />
-            <hemisphereLight args={['#ffffff', '#222', 0.85]} />
-            <directionalLight position={[5, 12, 8]} intensity={1.2} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-camera-near={0.5} shadow-camera-far={100} />
+          {canUseWebGL() && (
+            <Canvas shadows style={{ width: '100%', height: '100%' }} camera={{ position: [0, 1.2, 1.8], fov: 38 }}>
+              <ambientLight intensity={0.45} />
+              <hemisphereLight args={['#ffffff', '#222', 0.85]} />
+              <directionalLight position={[5, 12, 8]} intensity={1.2} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-camera-near={0.5} shadow-camera-far={100} />
 
-            <OrbitControls enablePan enableZoom enableRotate autoRotate autoRotateSpeed={0.3} />
+              <OrbitControls enablePan enableZoom enableRotate autoRotate autoRotateSpeed={0.3} />
 
-            <Suspense fallback={<mesh /> }>
-              <Environment preset="studio" background={false} />
-              <Stage adjustCamera={true} intensity={1.25} shadows={true}>
-                <CyberpunkCar position={[0, -0.6, 0]} rotation={[0, Math.PI, 0]} />
-              </Stage>
+              <Suspense fallback={<mesh /> }>
+                <Environment preset="studio" background={false} />
+                <Stage adjustCamera={true} intensity={1.25} shadows={true}>
+                  <CyberpunkCar position={[0, -0.6, 0]} rotation={[0, Math.PI, 0]} />
+                </Stage>
 
-              <ContactShadows position={[0, -0.9, 0]} opacity={0.8} width={4} height={4} blur={3} far={1.6} />
-            </Suspense>
-          </Canvas>
+                <ContactShadows position={[0, -0.9, 0]} opacity={0.8} width={4} height={4} blur={3} far={1.6} />
+              </Suspense>
+            </Canvas>
+          )}
         </div>
       </section>
 

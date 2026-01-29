@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import AppButton from '../../components/AppButton/AppButton'
 import './AiHelper.css'
 import { orders, vehicles } from '../../utils/mockData'
 
@@ -10,6 +12,7 @@ const SUGGESTIONS = [
 ]
 
 export default function AiHelper() {
+  const navigate = useNavigate()
   const [q, setQ] = useState('')
   const [log, setLog] = useState<{ role:'user'|'ai', text:string }[]>([
     { role:'ai', text:'Cześć! Opisz objawy, a podpowiem możliwe przyczyny i kroki diagnostyczne.' }
@@ -43,6 +46,9 @@ export default function AiHelper() {
   return (
     <div className="ai-container">
       <div className="ai-header">
+        <AppButton variant="back" onClick={() => navigate(-1)}>
+          ← Wróć
+        </AppButton>
         <h1>AI Pomocnik serwisowy</h1>
       </div>
 

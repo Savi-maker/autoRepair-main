@@ -1,4 +1,4 @@
-declare module '*.png' {
+﻿declare module '*.png' {
   const content: number;
   export default content;
 }
@@ -53,3 +53,4 @@ declare module '*.gltf' {
   const src: string;
   export default src;
 }
+

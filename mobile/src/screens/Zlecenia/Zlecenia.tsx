@@ -1,10 +1,13 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import StatusBadge from '../../components/StatusBadge'
+import AppButton from '../../components/AppButton/AppButton'
+import { useAuth } from '../../utils/useAuth'
 import './Zlecenia.css'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Stage, ContactShadows, Environment } from '@react-three/drei'
 import V8Engine from '../../components/models/v8Engine'
+import { canUseWebGL } from '../../utils/webglDetect'
 
 import {
   getOrders,
@@ -35,6 +38,8 @@ function mapUiToBackendStatus(s: UiOrderStatus) {
 }
 
 export default function Zlecenia() {
+  const navigate = useNavigate()
+  const { hasPermission } = useAuth()
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<FilterStatus>('wszystkie')
 
@@ -42,6 +47,13 @@ export default function Zlecenia() {
   const [error, setError] = useState<string | null>(null)
 
   const [orders, setOrders] = useState<OrderType[]>([])
+  const [orderPage, setOrderPage] = useState(1)
+  const [orderPagination, setOrderPagination] = useState<any>({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 1
+  })
   const [vehicles, setVehicles] = useState<VehicleType[]>([])
   const [customers, setCustomers] = useState<CustomerType[]>([])
 
@@ -64,12 +76,12 @@ export default function Zlecenia() {
   const [editStatus, setEditStatus] = useState<UiOrderStatus>('oczekujące')
   const [editOpis, setEditOpis] = useState('')
 
-  // Lista prawidłowych części silnika V8 (nazwy węzłów z hierarchii GLTF)
+
   const ENGINE_PARTS_MAP: Record<string, string> = {
-    // Głowice
+
     "Head_0": 'Głowica silnika',
     "Heads": 'Głowica silnika',
-    // Kolektory i dolot
+
     "Intake.4_1": 'Kolektor dolotowy',
     "Intake_20": 'Kolektor dolotowy',
     "Intake.3_27": 'Kolektor dolotowy',
@@ -77,14 +89,14 @@ export default function Zlecenia() {
     "Filter": 'Filtr powietrza',
     "Intake.2_34": 'Przepustnica',
     "Throttle_body": 'Przepustnica',
-    // Układ olejowy
+
     "Oil pan_2": 'Misa olejowa',
     "Oil pan.3_30": 'Misa olejowa',
     "Oil pan.4_31": 'Misa olejowa',
     "Oil pan.2_32": 'Misa olejowa',
     "Dip stick_5": 'Bagnet oleju',
     "Dipstick": 'Bagnet oleju',
-    // Blok i osprzęt
+
     "Block_3": 'Blok silnika',
     "Bolts_4": 'Śruby mocujące',
     "Valve covers.2_6": 'Pokrywa zaworów',
@@ -98,14 +110,14 @@ export default function Zlecenia() {
     "Belt_11": 'Pasek napędowy',
     "Alternator.2_12": 'Alternator',
     "Alternator_13": 'Alternator',
-    // Zapłon
+
     "Spark plugs_14": 'Świece zapłonowe',
     "Spark_plugs": 'Świece zapłonowe',
     "Distributor.4_15": 'Przewody zapłonowe',
     "Distributor.3_16": 'Przewody zapłonowe',
     "Distributor.2_17": 'Przewody zapłonowe',
     "Ignition_wires": 'Przewody zapłonowe',
-    // Wydech
+
     "Headers.3_19": 'Kolektor wydechowy',
     "Headers_23": 'Kolektor wydechowy',
     "Headers.2_26": 'Kolektor wydechowy',
@@ -154,44 +166,49 @@ export default function Zlecenia() {
     setEditStatus('oczekujące')
   }
 
-  const reloadAll = async () => {
+  const reloadAll = async (page: number = 1) => {
     setLoading(true)
     setError(null)
 
-    const [oRes, vRes, cRes] = await Promise.all([getOrders(), getVehicles(), getCustomers()])
+    const results = await Promise.allSettled([getOrders(page, 20), getVehicles(), getCustomers()])
 
-    if (!oRes.success) {
-      setError(oRes.message || 'Błąd pobierania zleceń')
-      setLoading(false)
-      return
+    const [oRes, vRes, cRes] = results
+
+    if (oRes.status === 'fulfilled' && oRes.value.success) {
+      setOrders(oRes.value.data || [])
+      if (oRes.value.pagination) {
+        setOrderPagination(oRes.value.pagination)
+      }
     }
-    if (!vRes.success) {
-      setError(vRes.message || 'Błąd pobierania pojazdów')
-      setLoading(false)
-      return
+    if (vRes.status === 'fulfilled' && vRes.value.success) {
+      setVehicles(vRes.value.data || [])
     }
-    if (!cRes.success) {
-      setError(cRes.message || 'Błąd pobierania klientów')
-      setLoading(false)
-      return
+    if (cRes.status === 'fulfilled' && cRes.value.success) {
+      setCustomers(cRes.value.data || [])
     }
 
-    setOrders(oRes.data || [])
-    setVehicles(vRes.data || [])
-    setCustomers(cRes.data || [])
+    const hasError = results.some(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success))
+    if (hasError) {
+      const failedLoads = []
+      if (oRes.status === 'rejected' || (oRes.status === 'fulfilled' && !oRes.value.success)) failedLoads.push('zlecenia')
+      if (vRes.status === 'rejected' || (vRes.status === 'fulfilled' && !vRes.value.success)) failedLoads.push('pojazdy')
+      if (cRes.status === 'rejected' || (cRes.status === 'fulfilled' && !cRes.value.success)) failedLoads.push('klienci')
+      setError(`Błąd pobierania: ${failedLoads.join(', ')}`)
+    }
+
     setLoading(false)
   }
 
   useEffect(() => {
     let alive = true
     ;(async () => {
-      await reloadAll()
+      await reloadAll(orderPage)
       if (!alive) return
     })()
     return () => {
       alive = false
     }
-  }, [])
+  }, [orderPage])
 
   const vehiclesForCustomer = useMemo(() => {
     if (!customerId) return []
@@ -317,6 +334,11 @@ export default function Zlecenia() {
   return (
     <div className="zlecenia-container">
       <div className="zlecenia-header">
+        <div className="zlecenia-left">
+          <AppButton variant="back" onClick={() => navigate(-1)}>
+            ← Wróć
+          </AppButton>
+        </div>
         <h1>Zlecenia</h1>
         <div className="zlecenia-actions">
           <input
@@ -332,9 +354,11 @@ export default function Zlecenia() {
             <option value="zakończone">Zakończone</option>
             <option value="anulowane">Anulowane</option>
           </select>
-          <button className="z-btn-primary" onClick={() => setOpen(true)}>
-            Dodaj nowe zlecenie
-          </button>
+          {hasPermission('canManageOrders') && (
+            <AppButton variant="primary" onClick={() => setOpen(true)}>
+              Dodaj nowe zlecenie
+            </AppButton>
+          )}
         </div>
       </div>
 
@@ -382,6 +406,51 @@ export default function Zlecenia() {
           )
         })}
       </div>
+
+      {orderPagination.totalPages > 1 && (
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          justifyContent: 'center', 
+          padding: '16px 0',
+          flexWrap: 'wrap',
+          alignItems: 'center'
+        }}>
+          <button 
+            onClick={() => setOrderPage(p => Math.max(1, p - 1))}
+            disabled={orderPage === 1}
+            style={{
+              padding: '8px 16px',
+              background: orderPage === 1 ? '#555' : '#ff6600',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: orderPage === 1 ? 'not-allowed' : 'pointer',
+              opacity: orderPage === 1 ? 0.5 : 1,
+            }}
+          >
+            ← Poprzednia
+          </button>
+          <span style={{ color: '#ccc', fontSize: '14px' }}>
+            Strona <b>{orderPage}</b> z <b>{orderPagination.totalPages}</b>
+          </span>
+          <button 
+            onClick={() => setOrderPage(p => p + 1)}
+            disabled={orderPage >= orderPagination.totalPages}
+            style={{
+              padding: '8px 16px',
+              background: orderPage >= orderPagination.totalPages ? '#555' : '#ff6600',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: orderPage >= orderPagination.totalPages ? 'not-allowed' : 'pointer',
+              opacity: orderPage >= orderPagination.totalPages ? 0.5 : 1,
+            }}
+          >
+            Następna →
+          </button>
+        </div>
+      )}
 
       {open && (
         <div
@@ -627,28 +696,30 @@ export default function Zlecenia() {
           </div>
         </div>
         <div className="model-canvas">
-          <Canvas shadows style={{ width: '100%', height: '100%' }} camera={{ position: [0, 1.2, 1.8], fov: 38 }}>
-            <ambientLight intensity={0.25} />
-            <hemisphereLight args={['#ffffff', '#222', 0.45]} />
-            <directionalLight position={[5, 12, 8]} intensity={0.8} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-camera-near={0.5} shadow-camera-far={100} />
+          {canUseWebGL() && (
+            <Canvas shadows style={{ width: '100%', height: '100%' }} camera={{ position: [0, 1.2, 1.8], fov: 38 }}>
+              <ambientLight intensity={0.25} />
+              <hemisphereLight args={['#ffffff', '#222', 0.45]} />
+              <directionalLight position={[5, 12, 8]} intensity={0.8} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-camera-near={0.5} shadow-camera-far={100} />
 
-            <OrbitControls enablePan enableZoom enableRotate autoRotate autoRotateSpeed={0.3} />
+              <OrbitControls enablePan enableZoom enableRotate autoRotate autoRotateSpeed={0.3} />
 
-            <Suspense fallback={<mesh />}>
-              <Environment preset="studio" background={false} />
-              <Stage adjustCamera={true} intensity={0.75} shadows={true}>
-                <V8Engine 
-                  position={[0, -0.2, 0]} 
-                  rotation={[Math.PI / 2, 0, 0]}
-                  onPartsLoaded={setEnginePartsRaw}
-                  // Przekazujemy przefiltrowaną listę technicznych ID
-                  highlightedPart={getTechnicalParts(activeLabel)}
-                />
-              </Stage>
+              <Suspense fallback={<mesh />}>
+                <Environment preset="studio" background={false} />
+                <Stage adjustCamera={true} intensity={0.75} shadows={true}>
+                  <V8Engine 
+                    position={[0, -0.2, 0]} 
+                    rotation={[Math.PI / 2, 0, 0]}
+                    onPartsLoaded={setEnginePartsRaw}
 
-              <ContactShadows position={[0, -0.9, 0]} opacity={0.8} width={4} height={4} blur={3} far={1.6} />
-            </Suspense>
-          </Canvas>
+                    highlightedPart={getTechnicalParts(activeLabel)}
+                  />
+                </Stage>
+
+                <ContactShadows position={[0, -0.9, 0]} opacity={0.8} width={4} height={4} blur={3} far={1.6} />
+              </Suspense>
+            </Canvas>
+          )}
         </div>
       </section>
 

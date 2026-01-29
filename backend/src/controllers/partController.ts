@@ -1,4 +1,4 @@
-import type { Response } from "express";
+﻿import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
 import { all, get, run } from "../db.js";
 
@@ -33,7 +33,7 @@ export async function getPartById(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
     const row = await get(
       `SELECT id, name, sku, brand, stock, min_stock, price, location, created_at
@@ -57,7 +57,7 @@ export async function createPart(req: AuthRequest, res: Response) {
     const { name, sku, brand, stock, min_stock, price, location } = req.body ?? {};
 
     if (!name || !sku) {
-      return res.status(400).json({ success: false, message: "Brak pól: name, sku" });
+      return res.status(400).json({ success: false, message: "Brak pĂłl: name, sku" });
     }
 
     const existing = await get<{ id: number }>(`SELECT id FROM parts WHERE sku = ?`, [String(sku)]);
@@ -83,7 +83,7 @@ export async function createPart(req: AuthRequest, res: Response) {
   } catch (e: any) {
     const msg = String(e?.message || "DB error");
     if (msg.includes("UNIQUE constraint failed: parts.sku")) {
-      return res.status(409).json({ success: false, message: "Część o takim SKU już istnieje" });
+      return res.status(409).json({ success: false, message: "CzÄ™Ĺ›Ä‡ o takim SKU juĹĽ istnieje" });
     }
     return res.status(500).json({ success: false, message: msg });
   }
@@ -192,3 +192,4 @@ export async function lowStockParts(req: AuthRequest, res: Response) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
   }
 }
+
