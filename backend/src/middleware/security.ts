@@ -43,7 +43,7 @@ export const generalLimiter = rateLimit({
   message: 'Zbyt wiele żądań z tego adresu IP, spróbuj ponownie później.',
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => isAdminRequest(req), // Admini omijają limit
+  skip: (req) => isAdminRequest(req),
 })
 
 export const authLimiter = rateLimit({
@@ -61,7 +61,7 @@ export const apiLimiter = rateLimit({
   message: 'Zbyt wiele żądań do tego endpointu, spróbuj ponownie później.',
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => isAdminRequest(req), // Admini omijają limit
+  skip: (req) => isAdminRequest(req),
 })
 
 export function helmetMiddleware() {

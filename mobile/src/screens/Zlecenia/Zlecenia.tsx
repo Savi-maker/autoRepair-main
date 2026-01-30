@@ -105,7 +105,7 @@ export default function Zlecenia() {
     "Distributor_7": 'Rozdzielacz zapłonu',
     "Transmission_8": 'Skrzynia biegów',
     "Fuel pump_9": 'Pompa paliwa',
-    "Oil_pump": 'Pompa olejowa', // Dodano pompę olejową
+    "Oil_pump": 'Pompa olejowa',
     "Pulleys_10": 'Koła pasowe',
     "Belt_11": 'Pasek napędowy',
     "Alternator.2_12": 'Alternator',

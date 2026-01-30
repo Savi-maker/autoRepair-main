@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { registerProfile } from '../../utils/api'
+import { hashPassword, validateEmail, validatePasswordStrength } from '../../utils/helpers'
 import './Auth.css'
 
 const RegisterScreen: React.FC = () => {
@@ -14,10 +15,26 @@ const RegisterScreen: React.FC = () => {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return emailRegex.test(email)
+  const getPasswordStrength = (value: string): { level: 'weak' | 'medium' | 'strong'; label: string } => {
+    let score = 0
+
+    if (value.length >= 8) score += 1
+    if (/[A-Z]/.test(value)) score += 1
+    if (/[a-z]/.test(value)) score += 1
+    if (/[0-9]/.test(value)) score += 1
+    if (/[^A-Za-z0-9]/.test(value)) score += 1
+
+    if (score >= 4) return { level: 'strong', label: 'Silne' }
+    if (score >= 2) return { level: 'medium', label: 'Średnie' }
+    return { level: 'weak', label: 'Słabe' }
   }
+
+  const getPasswordRequirements = (value: string) => ({
+    length: value.length >= 8,
+    uppercase: /[A-Z]/.test(value),
+    number: /[0-9]/.test(value),
+    special: /[^A-Za-z0-9]/.test(value)
+  })
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,8 +55,9 @@ const RegisterScreen: React.FC = () => {
       return
     }
 
-    if (password.length < 6) {
-      setError('Hasło musi mieć minimum 6 znaków')
+    const passwordValidation = validatePasswordStrength(password)
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.message)
       return
     }
 
@@ -50,7 +68,8 @@ const RegisterScreen: React.FC = () => {
 
     setLoading(true)
     try {
-      const resp = await registerProfile({ imie: first, nazwisko: last, mail, haslo: password })
+      const hashedPassword = await hashPassword(password)
+      const resp = await registerProfile({ imie: first, nazwisko: last, mail, haslo: hashedPassword })
       if (resp.success) {
         setSuccess('Rejestracja pomyślna! Możesz się teraz zalogować.')
         setTimeout(() => navigate('/login'), 900)
@@ -120,6 +139,27 @@ const RegisterScreen: React.FC = () => {
               placeholder="Wpisz hasło"
               disabled={loading}
             />
+            {password && (
+              <div className={`password-strength password-strength--${getPasswordStrength(password).level}`}>
+                Siła hasła: <span>{getPasswordStrength(password).label}</span>
+              </div>
+            )}
+            {password && (
+              <div className="password-requirements">
+                <div className={getPasswordRequirements(password).length ? 'req req--ok' : 'req req--bad'}>
+                  • Minimum 8 znaków
+                </div>
+                <div className={getPasswordRequirements(password).uppercase ? 'req req--ok' : 'req req--bad'}>
+                  • Wielka litera
+                </div>
+                <div className={getPasswordRequirements(password).number ? 'req req--ok' : 'req req--bad'}>
+                  • Cyfra
+                </div>
+                <div className={getPasswordRequirements(password).special ? 'req req--ok' : 'req req--bad'}>
+                  • Znak specjalny
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="form-group">
@@ -132,6 +172,13 @@ const RegisterScreen: React.FC = () => {
               placeholder="Powtórz hasło"
               disabled={loading}
             />
+            {confirmPassword && (
+              <div
+                className={`password-match ${password === confirmPassword ? 'password-match--ok' : 'password-match--bad'}`}
+              >
+                {password === confirmPassword ? 'Hasła są zgodne' : 'Hasła są różne'}
+              </div>
+            )}
           </div>
 
           <button type="submit" disabled={loading} className="btn-primary">

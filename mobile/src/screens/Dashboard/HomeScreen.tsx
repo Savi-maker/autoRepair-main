@@ -421,8 +421,6 @@ const Dashboard: React.FC = () => {
           {loadingData && <p style={{ opacity: 0.85, marginTop: 10 }}>⏳ Ładowanie danych…</p>}
           {!loadingData && error && <p style={{ color: '#ffb3b3', marginTop: 10 }}>⚠️ {error}</p>}
         </section>
-
-        {/* KPI */}
         <section className="kpi-grid">
           {kpis.map((k) => (
             <button key={k.title} className={toneClass(k.tone)} onClick={k.onClick}>
@@ -432,8 +430,6 @@ const Dashboard: React.FC = () => {
             </button>
           ))}
         </section>
-
-        {/* DÓŁ */}
         <section className="dashboard-grid">
           <div className="panel panel-wide">
             <div className="panel-header">

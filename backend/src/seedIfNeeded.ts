@@ -23,10 +23,9 @@ export async function seedIfNeeded() {
 
   console.log("🌱 Pusta baza — wykonuję seed...");
 
-
   const users = [
-    { imie: "Test", nazwisko: "User", mail: "test@example.com", telefon: "123456789", rola: "user", haslo: "password123" },
-    { imie: "Admin", nazwisko: "User", mail: "admin@example.com", telefon: "987654321", rola: "admin", haslo: "admin123" }
+    { imie: "Test", nazwisko: "User", mail: "test@example.com", telefon: "123456789", rola: "user", haslo: "65e84be33532fb784c48129675f9eff3a682b27168c0ea744b2cf58ee02337c5" },
+    { imie: "Admin", nazwisko: "User", mail: "admin@example.com", telefon: "987654321", rola: "admin", haslo: "4429f702260179f0611a1a0ae9d2b65869418962d5f8b0b14b9f13249dc91cb6" }
   ];
 
   for (const u of users) {
@@ -36,7 +35,8 @@ export async function seedIfNeeded() {
        VALUES (?, ?, ?, ?, ?, ?)`,
       [u.imie, u.nazwisko, u.mail, u.telefon, u.rola, hashed]
     );
-    console.log(`✅ Created user: ${u.mail} (password: ${u.haslo})`);
+    const originalPassword = u.mail === "test@example.com" ? "Test1234" : "@Admin123";
+    console.log(`✅ Created user: ${u.mail} (password: ${originalPassword})`);
   }
 
   const admin = await get<IdRow>(`SELECT id FROM users WHERE mail = ?`, ["admin@example.com"]);
@@ -70,8 +70,8 @@ export async function seedIfNeeded() {
       "Wymiana oleju + filtr oleju + kontrola płynów",
       customerId,
       vehicleId,
-      null, // mechanic_user_id
-      testUser?.id ?? admin?.id ?? null // created_by_user_id
+      null,
+      testUser?.id ?? admin?.id ?? null
     ]
   );
 

@@ -173,31 +173,31 @@ const rolePermissions: Record<'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 
     canViewAdminPanel: false,
     canManageUsers: false,
     canManageCustomers: false,
-    canViewCustomers: false,        // Cannot see other customers
+    canViewCustomers: false,
     canManageVehicles: false,
-    canViewVehicles: true,          // Can see own vehicles
+    canViewVehicles: true,
     canCreateOrders: false,
     canManageOrders: false,
-    canViewOrders: true,            // Can see own orders
-    canManageAppointments: true,    // Can create appointments for own vehicles
-    canViewAppointments: true,      // Can see own appointments
+    canViewOrders: true,
+    canManageAppointments: true,
+    canViewAppointments: true,
     canManageInvoices: false,
-    canViewInvoices: false,         // Cannot see invoices
+    canViewInvoices: false,
     canManageWarehouse: false,
-    canViewWarehouse: false,        // Cannot see warehouse
+    canViewWarehouse: false,
     canManageMessages: false,
-    canViewMessages: true,          // Can see only own messages
-    canViewAiHelper: true,          // Can use AI helper
+    canViewMessages: true,
+    canViewAiHelper: true,
 
     canViewAnalytics: false,
     canManageServicePrices: false,
-    canViewServicePrices: true,     // Can see available services
-    canViewVehicleHistory: true,    // Can see own vehicle history
+    canViewServicePrices: true,
+    canViewVehicleHistory: true,
     canManageSchedule: false,
     canViewSchedule: false,
     canManageSuppliers: false,
     canViewSuppliers: false,
-    canViewRatings: true,           // Can see and create ratings
+    canViewRatings: true,
     canManageEmailTemplates: false,
   },
 };

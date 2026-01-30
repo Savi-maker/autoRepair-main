@@ -19,11 +19,11 @@ async function main() {
   await run(`DELETE FROM customers`);
   await run(`DELETE FROM users`);
 
-
   const users = [
-    { imie: "Admin", nazwisko: "Serwis", mail: "admin@example.com", telefon: "500000001", rola: "admin", haslo: "admin123" }
+    { imie: "Admin", nazwisko: "Serwis", mail: "admin@example.com", telefon: "500000001", rola: "admin", haslo: "4429f702260179f0611a1a0ae9d2b65869418962d5f8b0b14b9f13249dc91cb6", originalPassword: "@Admin123" }
   ];
 
+  const userPasswordHash = "d3dec3f35387156495cbc21471313f87155f878f3435b693f50077c2be479033";
 
   const firstNames = ["Jan", "Ala", "Kamil", "Ola", "Piotr", "Marek", "Katarzyna", "Ewa", "Tomasz", "Anna"];
   const lastNames = ["Kowalski", "Nowak", "Wójcik", "Zielińska", "Lewandowski", "Wiśniewski", "Kamińska", "Kucharski", "Górski", "Mrówka"];
@@ -37,10 +37,12 @@ async function main() {
       mail: `user${i}@example.com`,
       telefon: `500000${String(i + 1).padStart(3, "0")}`,
       rola: "user",
-      haslo: "pass123"
+      haslo: userPasswordHash,
+      originalPassword: "Pass1234"
     });
   }
 
+  const mechPasswordHash = "7c756054f305a9ecff1b8cae83f8ee0b03045ecf8854e342b57be0f101fa7137";
 
   for (let i = 1; i <= 10; i++) {
     users.push({
@@ -49,10 +51,12 @@ async function main() {
       mail: `mechanic${i}@example.com`,
       telefon: `600000${String(i).padStart(3, "0")}`,
       rola: "mechanik",
-      haslo: "mech123"
+      haslo: mechPasswordHash,
+      originalPassword: "Mech1234"
     });
   }
 
+  const mgrPasswordHash = "c39557b239d65f89a795be351873297c71300a162b1f4d2546ea3d9c29883736";
 
   for (let i = 1; i <= 10; i++) {
     users.push({
@@ -61,10 +65,12 @@ async function main() {
       mail: `manager${i}@example.com`,
       telefon: `610000${String(i).padStart(3, "0")}`,
       rola: "kierownik",
-      haslo: "mgr123"
+      haslo: mgrPasswordHash,
+      originalPassword: "Mgr12345"
     });
   }
 
+  const recPasswordHash = "ad2c4ebed67b8760284f7ad42bfc2d2b97a65e9951233b929d61599bf687101e";
 
   for (let i = 1; i <= 10; i++) {
     users.push({
@@ -73,19 +79,20 @@ async function main() {
       mail: `receptionist${i}@example.com`,
       telefon: `620000${String(i).padStart(3, "0")}`,
       rola: "recepcja",
-      haslo: "rec123"
+      haslo: recPasswordHash,
+      originalPassword: "Rec12345"
     });
   }
 
   for (const u of users) {
-    const hashed = await bcrypt.hash(u.haslo, 10);
+    const doubleHashed = await bcrypt.hash(u.haslo, 10);
     await run(
       `INSERT INTO users (imie, nazwisko, mail, telefon, rola, haslo)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [u.imie, u.nazwisko, u.mail, u.telefon, u.rola, hashed]
+      [u.imie, u.nazwisko, u.mail, u.telefon, u.rola, doubleHashed]
     );
   }
-  console.log(`✅ Users: ${users.length}`);
+  console.log(`✅ Users: ${users.length} (passwords: admin=@Admin123, users=Pass1234, mechanics=Mech1234, managers=Mgr12345, reception=Rec12345)`);
 
   const admin = await get<IdRow>(`SELECT id FROM users WHERE mail = ?`, ["admin@example.com"]);
   
@@ -425,7 +432,7 @@ async function main() {
   for (let i = 0; i < 50; i++) {
     const user = userRows[i % userRows.length];
     const day = daysOfWeek[i % daysOfWeek.length];
-    const isAvailable = i % 7 !== 6 ? 1 : 0; // Niedziela niedostępna
+    const isAvailable = i % 7 !== 6 ? 1 : 0;
 
     await run(
       `INSERT INTO employee_schedule (user_id, day_of_week, start_time, end_time, is_available)
@@ -484,7 +491,7 @@ async function main() {
         customer.id,
         mechanic,
         order.id,
-        Math.floor(3 + Math.random() * 3), // 3-5 gwiazdek
+        Math.floor(3 + Math.random() * 3),
         `Opinia klienta nr ${i + 1}: Dobra robota, profesjonalny serwis`,
         i % 10 === 0 ? 1 : 0
       ]
