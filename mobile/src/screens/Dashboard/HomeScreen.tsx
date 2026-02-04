@@ -188,7 +188,7 @@ const Dashboard: React.FC = () => {
       service: serviceLabel,
       date: isoToLocalShort(first.start_at),
       mechanic: mechanicLabel,
-      status: first.status || 'zaplanowana',
+      status: first.status || 'oczekujacy',
     }
   }, [appointments])
 

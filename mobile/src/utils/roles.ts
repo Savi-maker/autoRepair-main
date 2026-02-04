@@ -3,10 +3,12 @@
   | 'kierownik'
   | 'mechanik'
   | 'recepcja'
+  | 'klient'
   | 'user'
   | 'manager'
   | 'mechanic'
-  | 'receptionist';
+  | 'receptionist'
+  | 'client';
 
 export interface RolePermissions {
   canViewAdminPanel: boolean;
@@ -40,7 +42,7 @@ export interface RolePermissions {
   canManageEmailTemplates: boolean;
 }
 
-const rolePermissions: Record<'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 'user', RolePermissions> = {
+const rolePermissions: Record<'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 'klient' | 'user', RolePermissions> = {
   admin: {
     canViewAdminPanel: true,
     canManageUsers: true,
@@ -200,6 +202,38 @@ const rolePermissions: Record<'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 
     canViewRatings: true,
     canManageEmailTemplates: false,
   },
+  klient: {
+
+    canViewAdminPanel: false,
+    canManageUsers: false,
+    canManageCustomers: false,
+    canViewCustomers: false,
+    canManageVehicles: true,
+    canViewVehicles: true,
+    canCreateOrders: true,
+    canManageOrders: false,
+    canViewOrders: true,
+    canManageAppointments: true,
+    canViewAppointments: true,
+    canManageInvoices: false,
+    canViewInvoices: true,
+    canManageWarehouse: false,
+    canViewWarehouse: false,
+    canManageMessages: true,
+    canViewMessages: true,
+    canViewAiHelper: true,
+
+    canViewAnalytics: false,
+    canManageServicePrices: false,
+    canViewServicePrices: true,
+    canViewVehicleHistory: true,
+    canManageSchedule: false,
+    canViewSchedule: false,
+    canManageSuppliers: false,
+    canViewSuppliers: false,
+    canViewRatings: true,
+    canManageEmailTemplates: false,
+  },
 };
 
 export function getPermissions(role: UserRole): RolePermissions {
@@ -211,12 +245,13 @@ export function hasPermission(role: UserRole, permission: keyof RolePermissions)
   return perms[permission];
 }
 
-export function normalizeRole(role?: string): 'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 'user' {
+export function normalizeRole(role?: string): 'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 'klient' | 'user' {
   const r = String(role ?? '').trim().toLowerCase();
   if (r === 'admin' || r === 'administrator') return 'admin';
   if (r === 'kierownik' || r === 'manager') return 'kierownik';
   if (r === 'mechanik' || r === 'mechanic') return 'mechanik';
   if (r === 'recepcja' || r === 'receptionist') return 'recepcja';
+  if (r === 'klient' || r === 'client') return 'klient';
   return 'user';
 }
 

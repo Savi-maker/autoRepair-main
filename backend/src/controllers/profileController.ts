@@ -7,7 +7,7 @@ export async function getProfile(req: AuthRequest, res: Response) {
   if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
   const user = await get(
-    `SELECT id, imie, nazwisko, mail, telefon, rola, created_at
+    `SELECT id, imie, nazwisko, mail, telefon, rola, customer_id, created_at
      FROM users
      WHERE id = ?`,
     [req.user.id]

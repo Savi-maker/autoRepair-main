@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppButton from '../../components/AppButton/AppButton'
 import './Kalendarz.css'
+import { useAuth } from '../../utils/useAuth'
 import {
   getAppointments,
   getVehicles,
@@ -22,6 +23,7 @@ function toISODate(d: Date) {
 
 export default function Kalendarz() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [selected, setSelected] = useState<string>(toISODate(new Date()))
 
   const [loading, setLoading] = useState(true)
@@ -119,10 +121,27 @@ export default function Kalendarz() {
     return arr
   }, [])
 
+  const filteredCustomers = useMemo(() => {
+    if (user && (user.rola === 'klient' || user.rola === 'user') && user.customer_id) {
+      return customers.filter((c) => c.id === user.customer_id)
+    }
+    return customers
+  }, [customers, user])
+
   const vehiclesForCustomer = useMemo(() => {
     if (!customerId) return []
-    return vehicles.filter((v) => v.customer_id === Number(customerId))
-  }, [vehicles, customerId])
+    let vList = vehicles.filter((v) => v.customer_id === Number(customerId))
+    if (user && (user.rola === 'klient' || user.rola === 'user') && user.customer_id) {
+      vList = vList.filter((v) => v.customer_id === user.customer_id)
+    }
+    return vList
+  }, [vehicles, customerId, user])
+
+  useEffect(() => {
+    if (user && (user.rola === 'klient' || user.rola === 'user') && user.customer_id && !customerId) {
+      setCustomerId(user.customer_id)
+    }
+  }, [user])
 
   useEffect(() => {
     if (!customerId) {
@@ -136,10 +155,16 @@ export default function Kalendarz() {
   }, [customerId])
 
   const dayVisits = useMemo(() => {
-    return (appointments || [])
+    let filtered = (appointments || [])
       .filter((v) => String(v.start_at || '').slice(0, 10) === selected)
       .sort((a, b) => String(a.start_at || '').localeCompare(String(b.start_at || '')))
-  }, [appointments, selected])
+    
+    if (user && (user.rola === 'klient' || user.rola === 'user') && user.customer_id) {
+      filtered = filtered.filter((a) => a.customer_id === user.customer_id)
+    }
+    
+    return filtered
+  }, [appointments, selected, user])
 
   const submitCreate = async () => {
     setFormError(null)
@@ -147,7 +172,11 @@ export default function Kalendarz() {
     const t = title.trim()
     if (!t) return setFormError('Uzupełnij pole: Tytuł')
     if (!startAt) return setFormError('Uzupełnij pole: Start')
-    if (!customerId) return setFormError('Wybierz klienta')
+    
+    const isKlient = user && (user.rola === 'klient' || user.rola === 'user')
+    const effectiveCustomerId = isKlient && user.customer_id ? user.customer_id : customerId
+    
+    if (!effectiveCustomerId) return setFormError('Wybierz klienta')
     if (!vehicleId) return setFormError('Wybierz pojazd')
 
     const startIso = startAt ? new Date(startAt).toISOString() : undefined
@@ -166,8 +195,8 @@ export default function Kalendarz() {
       title: t,
       start_at: startIso,
       end_at: endIso,
-      status: 'zaplanowana',
-      customer_id: Number(customerId),
+      status: 'oczekujacy',
+      customer_id: Number(effectiveCustomerId),
       vehicle_id: Number(vehicleId),
       order_id: undefined,
       notes: notes.trim() ? notes.trim() : undefined,
@@ -357,6 +386,7 @@ export default function Kalendarz() {
                 />
               </div>
 
+              {!(user && (user.rola === 'klient' || user.rola === 'user')) && (
               <div>
                 <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, color: '#ffcc99' }}>Klient</label>
                 <select
@@ -372,13 +402,14 @@ export default function Kalendarz() {
                   }}
                 >
                   <option value="">Wybierz klienta…</option>
-                  {customers.map((c) => (
+                  {filteredCustomers.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
                   ))}
                 </select>
               </div>
+              )}
 
               <div>
                 <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, color: '#ffcc99' }}>Pojazd</label>

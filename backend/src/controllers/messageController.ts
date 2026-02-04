@@ -9,7 +9,7 @@ export async function listThreads(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
     const q = String((req.query.q ?? "") as string).trim();
-    const isCustomer = req.user.rola === "user";
+    const isCustomer = req.user.rola === "user" || req.user.rola === "klient";
     const customerId = req.user.customer_id;
     const userId = req.user.id;
 

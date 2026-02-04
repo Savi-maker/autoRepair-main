@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppButton from '../../components/AppButton/AppButton'
 import './Faktury.css'
+import { useAuth } from '../../utils/useAuth'
 import { API_URL, getCustomers, getInvoices, createInvoice, updateInvoice, type CustomerType, type InvoiceType } from '../../utils/api'
 
 type UiStatus = 'opłacona' | 'oczekuje' | 'przeterminowana'
@@ -30,6 +31,7 @@ function isoToday() {
 
 export default function Faktury() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<FilterStatus>('wszystkie')
 
@@ -97,7 +99,14 @@ export default function Faktury() {
 
   const rows = useMemo(() => {
     const ql = q.toLowerCase().trim()
-    return invoices
+    let filtered = invoices
+    
+    // Filter by customer if user is 'klient' or 'user'
+    if (user && (user.rola === 'klient' || user.rola === 'user') && user.customer_id) {
+      filtered = filtered.filter((inv) => inv.customer_id === user.customer_id)
+    }
+    
+    return filtered
       .map((inv) => {
         const ui = toUiStatus(inv.status)
         return { inv, uiStatus: ui, clientName: customerNameById.get(inv.customer_id) || `Klient #${inv.customer_id}` }
@@ -108,7 +117,7 @@ export default function Faktury() {
         return `${r.inv.number} ${r.clientName}`.toLowerCase().includes(ql)
       })
       .sort((a, b) => (b.inv.issue_date || '').localeCompare(a.inv.issue_date || ''))
-  }, [invoices, q, status, customerNameById])
+  }, [invoices, q, status, customerNameById, user])
 
   const total = useMemo(() => rows.reduce((s, r) => s + (Number(r.inv.amount) || 0), 0), [rows])
 

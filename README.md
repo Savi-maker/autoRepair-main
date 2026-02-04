@@ -98,24 +98,28 @@ curl -X POST http://localhost:3000/auth/login \
 # ---------------------------------------------
 
 # Admin:
-# Email: jan@example.com
-# Hasło: password123
-
-# Kierownik:
-# Email: anna@example.com
-# Hasło: password123
-
-# Mechanik:
-# Email: piotr@example.com
-# Hasło: password123
-
-# Recepcja:
-# Email: maria@example.com
-# Hasło: password123
+# Email: admin@example.com
+# Hasło: @Admin123
 
 # Klient:
-# Email: client1@gmail.com
-# Hasło: password123
+# Email: client1@example.com
+# Hasło: Klient123
+
+# Kierownik:
+# Email: manager1@example.com
+# Hasło: Mgr12345
+
+# Mechanik:
+# Email: mechanic1@example.com
+# Hasło: Mech1234
+
+# Recepcja:
+# Email: receptionist1@example.com
+# Hasło: Rec12345
+
+# Zwyczajny użytkownik:
+# Email: user1@example.com
+# Hasło: Pass1234
 
 
 # ---------------------------------------------

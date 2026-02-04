@@ -25,7 +25,8 @@ export async function seedIfNeeded() {
 
   const users = [
     { imie: "Test", nazwisko: "User", mail: "test@example.com", telefon: "123456789", rola: "user", haslo: "65e84be33532fb784c48129675f9eff3a682b27168c0ea744b2cf58ee02337c5" },
-    { imie: "Admin", nazwisko: "User", mail: "admin@example.com", telefon: "987654321", rola: "admin", haslo: "4429f702260179f0611a1a0ae9d2b65869418962d5f8b0b14b9f13249dc91cb6" }
+    { imie: "Admin", nazwisko: "User", mail: "admin@example.com", telefon: "987654321", rola: "admin", haslo: "4429f702260179f0611a1a0ae9d2b65869418962d5f8b0b14b9f13249dc91cb6" },
+    { imie: "Recepcja", nazwisko: "Front", mail: "receptionist1@example.com", telefon: "615000001", rola: "recepcja", haslo: "ad2c4ebed67b8760284f7ad42bfc2d2b97a65e9951233b929d61599bf687101e" }
   ];
 
   for (const u of users) {
@@ -82,7 +83,7 @@ export async function seedIfNeeded() {
 
   await run(
     `INSERT INTO appointments (title, start_at, end_at, status, customer_id, vehicle_id, order_id, notes)
-     VALUES (?, datetime('now','+1 day'), datetime('now','+1 day','+1 hour'), 'zaplanowana', ?, ?, ?, ?)`,
+     VALUES (?, datetime('now','+1 day'), datetime('now','+1 day','+1 hour'), 'oczekujacy', ?, ?, ?, ?)`,
     ["Wizyta serwisowa", customerId, vehicleId, orderId, "Przyjechać 10 minut wcześniej"]
   );
 

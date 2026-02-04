@@ -9,6 +9,7 @@ export interface ProfileType {
   mail: string;
   telefon: string;
   rola: string;
+  customer_id?: number;
 }
 
 export interface OrderType {

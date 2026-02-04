@@ -82,7 +82,7 @@ export async function initDb() {
       title TEXT NOT NULL,
       start_at TEXT NOT NULL,
       end_at TEXT,
-      status TEXT NOT NULL DEFAULT 'zaplanowana',
+      status TEXT NOT NULL DEFAULT 'oczekujacy',
       customer_id INTEGER,
       vehicle_id INTEGER,
       order_id INTEGER,

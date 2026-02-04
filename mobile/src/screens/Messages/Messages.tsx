@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppButton from '../../components/AppButton/AppButton'
 import './Messages.css'
+import { useAuth } from '../../utils/useAuth'
 import {
   getThreads,
   getThreadMessages,
@@ -31,6 +32,7 @@ function titleForThread(t: ThreadType) {
 
 export default function Messages() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [threads, setThreads] = useState<ThreadType[]>([])
   const [activeId, setActiveId] = useState<number | null>(null)
 
@@ -121,10 +123,21 @@ export default function Messages() {
     convRef.current.scrollTop = convRef.current.scrollHeight
   }, [convo.length, activeId, loadingMsgs])
 
+  const filteredThreads = useMemo(() => {
+    let filtered = threads
+    
+    // Filter by customer if user is 'klient' or 'user'
+    if (user && (user.rola === 'klient' || user.rola === 'user') && user.customer_id) {
+      filtered = filtered.filter((t) => t.customer_id === user.customer_id)
+    }
+    
+    return filtered
+  }, [threads, user])
+
   const activeThread = useMemo(() => {
     if (!activeId) return null
-    return threads.find((t) => t.id === activeId) || null
-  }, [threads, activeId])
+    return filteredThreads.find((t) => t.id === activeId) || null
+  }, [filteredThreads, activeId])
 
   const send = async () => {
     if (!activeId) return
@@ -260,7 +273,7 @@ export default function Messages() {
         {error && <div style={{ padding: 10, color: '#ffb3b3' }}>⚠️ {error}</div>}
 
         <div className="thread-list">
-          {threads.map((t) => (
+          {filteredThreads.map((t) => (
             <button
               key={t.id}
               className={`thread ${t.id === activeId ? 'active' : ''}`}

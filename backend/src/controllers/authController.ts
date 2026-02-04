@@ -45,7 +45,7 @@ function signToken(user: { id: number; mail: string; rola: string; customer_id?:
 
   const role = normalizeRole(user.rola);
   const payload: any = { id: user.id, mail: user.mail, rola: role };
-  if (role === "user" && user.customer_id) {
+  if ((role === "user" || role === "klient") && user.customer_id) {
     payload.customer_id = user.customer_id;
   }
   return jwt.sign(payload, secret, { expiresIn: "7d" });

@@ -39,7 +39,7 @@ function mapUiToBackendStatus(s: UiOrderStatus) {
 
 export default function Zlecenia() {
   const navigate = useNavigate()
-  const { hasPermission } = useAuth()
+  const { hasPermission, user } = useAuth()
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<FilterStatus>('wszystkie')
 
@@ -228,8 +228,12 @@ export default function Zlecenia() {
 
   const data = useMemo(() => {
     const qLower = q.trim().toLowerCase()
+    let filtered = (orders || [])
 
-    return (orders || [])
+    // Backend already filters by customer_id for klient/user roles
+    // No need to filter again here
+
+    return filtered
       .filter((o) => {
         if (status === 'wszystkie') return true
         const uiStatus = mapBackendToUiStatus(String(o.status))

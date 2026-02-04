@@ -17,11 +17,11 @@ export async function listVehicles(req: AuthRequest, res: Response) {
     const offset = (page - 1) * limit;
 
     const role = normalizeRole(req.user.rola);
-    const isViewer = role === "admin" || role === "kierownik" || role === "recepcja" || role === "mechanik" || role === "user";
-    if (!isViewer) return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
+    const isViewer = role === "admin" || role === "kierownik" || role === "recepcja" || role === "mechanik" || role === "user" || role === "klient";
+    if (!isViewer) return res.status(403).json({ success: false, message: "Brak uprawnień" });
 
     const q = String((req.query.q ?? "") as string).trim();
-    const isCustomer = req.user.rola === "user";
+    const isCustomer = req.user.rola === "user" || req.user.rola === "klient";
     const customerId = req.user.customer_id;
 
     let query = `SELECT
@@ -83,7 +83,7 @@ export async function getVehicleById(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
     const role = normalizeRole(req.user.rola);
-    const isViewer = role === "admin" || role === "kierownik" || role === "recepcja" || role === "mechanik" || role === "user";
+    const isViewer = role === "admin" || role === "kierownik" || role === "recepcja" || role === "mechanik" || role === "user" || role === "klient";
     if (!isViewer) return res.status(403).json({ success: false, message: "Brak uprawnień" });
 
     const id = Number(req.params.id);
@@ -101,7 +101,7 @@ export async function getVehicleById(req: AuthRequest, res: Response) {
 
     if (!row) return res.status(404).json({ success: false, message: "Vehicle not found" });
 
-    if (role === "user" && req.user.customer_id && row?.customer_id !== req.user.customer_id) {
+    if ((role === "user" || role === "klient") && req.user.customer_id && row?.customer_id !== req.user.customer_id) {
       return res.status(403).json({ success: false, message: "Brak uprawnień" });
     }
 

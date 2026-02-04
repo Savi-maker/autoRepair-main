@@ -32,7 +32,7 @@ const ClientDashboard: React.FC = () => {
       id: 2,
       date: "20.11.2025 09:00",
       service: "Diagnostyka",
-      status: "Zaplanowana",
+      status: "Oczekująca",
     },
   ];
 

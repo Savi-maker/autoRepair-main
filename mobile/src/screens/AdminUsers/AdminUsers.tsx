@@ -10,7 +10,7 @@ import {
   type AdminUserType,
 } from '../../utils/api'
 
-type UserRole = 'admin' | 'kierownik' | 'mechanik' | 'recepcja'
+type UserRole = 'admin' | 'kierownik' | 'mechanik' | 'recepcja' | 'klient'
 type UserStatus = 'aktywny' | 'zablokowany'
 
 const ROLE_LABEL: Record<UserRole, string> = {
@@ -18,6 +18,7 @@ const ROLE_LABEL: Record<UserRole, string> = {
   kierownik: 'Kierownik',
   mechanik: 'Mechanik',
   recepcja: 'Recepcja',
+  klient: 'Klient',
 }
 
 function toRole(v: any): UserRole {
@@ -26,7 +27,8 @@ function toRole(v: any): UserRole {
   if (r === 'kierownik' || r === 'manager') return 'kierownik'
   if (r === 'mechanik' || r === 'mechanic') return 'mechanik'
   if (r === 'recepcja' || r === 'receptionist') return 'recepcja'
-  return 'recepcja'
+  if (r === 'klient' || r === 'client') return 'klient'
+  return 'klient'
 }
 
 function toStatus(v: any): UserStatus {
@@ -61,7 +63,7 @@ export default function AdminUsers() {
   const [aMail, setAMail] = useState('')
   const [aTelefon, setATelefon] = useState('')
   const [aHaslo, setAHaslo] = useState('')
-  const [aRola, setARola] = useState<UserRole>('recepcja')
+  const [aRola, setARola] = useState<UserRole>('klient')
 
   const [openReset, setOpenReset] = useState(false)
   const [resetting, setResetting] = useState(false)
@@ -72,7 +74,7 @@ export default function AdminUsers() {
   const [openRoleChange, setOpenRoleChange] = useState(false)
   const [changingRole, setChangingRole] = useState(false)
   const [roleChangeError, setRoleChangeError] = useState<string | null>(null)
-  const [selectedNewRole, setSelectedNewRole] = useState<UserRole>('recepcja')
+  const [selectedNewRole, setSelectedNewRole] = useState<UserRole>('klient')
   const [roleChangeUser, setRoleChangeUser] = useState<AdminUserType | null>(null)
 
   const loadAll = async () => {
@@ -126,7 +128,7 @@ export default function AdminUsers() {
     setAMail('')
     setATelefon('')
     setAHaslo('')
-    setARola('recepcja')
+    setARola('klient')
   }
 
   const submitAdd = async () => {
@@ -208,7 +210,7 @@ export default function AdminUsers() {
     if (changingRole) return
     setOpenRoleChange(false)
     setRoleChangeUser(null)
-    setSelectedNewRole('recepcja')
+    setSelectedNewRole('klient')
     setRoleChangeError(null)
   }
 
@@ -298,6 +300,7 @@ export default function AdminUsers() {
             <option value="kierownik">Kierownik</option>
             <option value="mechanik">Mechanik</option>
             <option value="recepcja">Recepcja</option>
+            <option value="klient">Klient</option>
           </select>
           <select className="a-select" value={status} onChange={(e) => setStatus(e.target.value as any)}>
             <option value="wszyscy">Wszystkie statusy</option>
@@ -403,6 +406,7 @@ export default function AdminUsers() {
               <div className="a-field">
                 <label>Rola</label>
                 <select value={aRola} onChange={(e) => setARola(e.target.value as UserRole)} disabled={adding}>
+                  <option value="klient">Klient</option>
                   <option value="recepcja">Recepcja</option>
                   <option value="mechanik">Mechanik</option>
                   <option value="kierownik">Kierownik</option>
