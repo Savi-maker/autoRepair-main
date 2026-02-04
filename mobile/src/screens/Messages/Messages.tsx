@@ -107,7 +107,7 @@ export default function Messages() {
       .slice()
       .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''))
       .map((m) => {
-        const role: UiMsg['role'] = m.sender_user_id ? 'me' : 'other'
+        const role: UiMsg['role'] = m.sender_user_id === user?.id ? 'me' : 'other'
         return {
           id: String(m.id),
           role,
@@ -116,7 +116,7 @@ export default function Messages() {
         }
       })
     return rows
-  }, [msgs])
+  }, [msgs, user?.id])
 
   useEffect(() => {
     if (!convRef.current) return

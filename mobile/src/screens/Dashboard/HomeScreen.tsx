@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../utils/useAuth'
+import { formatAppointmentStatus, formatOrderStatus, formatInvoiceStatus } from '../../utils/statusHelpers'
 import {
   logout,
   getOrders,
@@ -268,7 +269,7 @@ const Dashboard: React.FC = () => {
             id: `order-${o.id}`,
             ts: timeAgo(tsIso),
             kind: 'order',
-            text: `Zlecenie #${o.id} → status: ${o.status}`,
+            text: `Zlecenie #${o.id} → ${formatOrderStatus(o.status)}`,
             onClick: () => navigate('/zlecenia'),
           },
         })
@@ -302,7 +303,7 @@ const Dashboard: React.FC = () => {
             id: `inv-${i.id}`,
             ts: timeAgo(tsIso),
             kind: 'invoice',
-            text: `Faktura ${i.number} → ${i.status}`,
+            text: `Faktura ${i.number} → ${formatInvoiceStatus(i.status)}`,
             onClick: () => navigate('/faktury'),
           },
         })
@@ -434,7 +435,7 @@ const Dashboard: React.FC = () => {
           <div className="panel panel-wide">
             <div className="panel-header">
               <h3>Następna wizyta</h3>
-              <span className="status">{upcomingAppointment.status}</span>
+              <span className="status">{formatAppointmentStatus(upcomingAppointment.status)}</span>
             </div>
 
             <div className="appointment-body">
