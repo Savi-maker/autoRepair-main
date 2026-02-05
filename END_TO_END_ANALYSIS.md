@@ -24,6 +24,7 @@
   - `/api/parts` - Części zamienne (CRUD)
   - `/api/invoices` - Faktury (CRUD)
   - `/api/messages` - Wiadomości
+  - `/api/users/mechanics` - Lista mechaników (do przypisań)
   - `/api/analytics` - Analityka
   - `/api/suppliers` - Dostawcy
   - `/api/schedule` - Harmonogram
@@ -84,6 +85,7 @@ User:       user1@example.com          / Pass1234
 
 #### 📊 **Dashboard / HomeScreen** (95% gotowe)
 - **Dla roli admin/kierownik:** KPI panel z metrykami, następna wizyta, ostatnie aktywności
+- **Dla roli klient:** kafelki ofert serwisu + szybkie akcje (bez metryk magazynu/faktur)
 - **Wyświetlane dane:**
   - ✅ Liczba nowych zleceń
   - ✅ Liczba aktywnych zleceń
@@ -104,7 +106,7 @@ User:       user1@example.com          / Pass1234
   - ✅ Tworzenie nowej wizyty
   - ✅ Modal szczegółów wizyty
   - ✅ Zmiana statusu wizyty (recepcja/kierownik/admin)
-  - ✅ Konwersja wizyty na zlecenie
+  - ✅ Konwersja wizyty na zlecenie (z opcjonalnym wyborem mechanika)
   - ✅ Wyświetlanie powiązania ze zleceniem
   - ❌ Przełożenie wizyty (przycisk, ale brak implementacji)
 
@@ -210,14 +212,6 @@ User:       user1@example.com          / Pass1234
   - ❌ Powiadomienia push
   - ❌ Integracje
 
-#### 🤖 **AI Helper** (40% gotowe)
-- **Funkcjonalność:**
-  - ✅ Chat diagnostyczny (mock - nie ma backendu)
-  - ✅ Sugestie dla typowych problemów
-  - ✅ Powiązanie z zleceniami/pojazdami (mock data)
-  - ❌ Integracja z AI (OpenAI, Anthropic)
-  - ❌ Historia czatu
-  - ❌ Personalizacja
 
 #### 👨‍💼 **Admin Panel - Użytkownicy** (80% gotowe)
 - **Funkcjonalność:**
@@ -312,9 +306,10 @@ START - Receptionist zalogowany
 4️⃣ Konwersja wizyty na zlecenie (jeśli wymagane)
   ↓
    [Szczegóły wizyty - Modal]
-   Przycisk: "📋 Utwórz zlecenie"
+  Wybór mechanika (opcjonalnie) + przycisk: "📋 Utwórz zlecenie"
    ↓
-   POST /api/orders (customer_id, vehicle_id, title, notes)
+  GET /api/users/mechanics
+  POST /api/orders (customer_id, vehicle_id, title, notes, mechanic_user_id)
    ↓
    PATCH /api/appointments/:id {order_id: <new_order_id>}
   ↓
@@ -457,7 +452,7 @@ END
 **Co jeszcze brakuje:**
 - ❌ Email potwierdzenia wizyty
 - ❌ SMS reminder
-- ❌ Anulowanie wizyty (przycisk, ale bez implementacji)
+- ❌ Anulowanie wizyty
 - ❌ Przełożenie wizyty na inny termin
 - ❌ Powiadomienie o zmianach statusu
 
@@ -704,10 +699,6 @@ END
                               ↓
         Backend: UPDATE orders SET status='zakonczone', opis=..., end_at=...
                               ↓
-        ❌ BRAKUJE: Automatyczne tworzenie faktury
-        ❌ BRAKUJE: Wysyłanie powiadomienia do kierownika
-        ❌ BRAKUJE: Wysyłanie powiadomienia do klienta
-                              ↓
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ KLIENT - PRZEGLĄDANIE STANU                                             │
 │ 1. Otwiera Zlecenia                                                     │
@@ -747,8 +738,8 @@ END
 | RegisterScreen | Rejestracja | ✅ 100% |
 | ResetPasswordScreen | Reset hasła | ✅ 100% |
 | HomeScreen (Dashboard) | KPI + Activity Log | ✅ 95% |
-| Kalendarz | **NOWE** - Calendar + Status Change + Order Conversion | ✅ 95% |
-| Zlecenia | **ZMODYFIKOWANY** - Orders + Mechanic Dropdown | ✅ 95% |
+| Kalendarz | Calendar + Status Change + Order Conversion | ✅ 95% |
+| Zlecenia | Orders + Mechanic Dropdown | ✅ 95% |
 | Pojazdy | Vehicles CRUD | ✅ 90% |
 | Klienci | Customers CRUD | ✅ 90% |
 | Faktury | Invoices List + PDF | ✅ 75% |
@@ -762,134 +753,9 @@ END
 
 **Razem implementacja frontendu: 80%**
 
-### 7.3 Funkcjonalności Realizowane w Ostatniej Sesji
 
-| Funkcjonalność | Plik | Status |
-|-----------------|------|--------|
-| UI do zmiany statusu wizyty | Kalendarz.tsx | ✅ |
-| Dropdown mechaników | Zlecenia.tsx | ✅ |
-| Konwersja wizyty na zlecenie | Kalendarz.tsx | ✅ |
-| Spójne etykiety statusów PL | statusHelpers.ts | ✅ |
-| Mapowanie statusów w Dashboard | HomeScreen.tsx | ✅ |
 
----
-
-## 8. NIEDOSTĘPNE FUNKCJONALNOŚCI
-
-### 8.1 Backend (NIE ZAIMPLEMENTOWANE)
-
-1. **Email Integration**
-   - Wysyłanie potwierdzenia wizyty
-   - Wysyłanie faktury
-   - Reminder o wizytach
-   - Reset hasła (email)
-
-2. **SMS Integration**
-   - Reminder SMS godzinę przed wizytą
-   - Potwierdzenie SMS
-
-3. **Real-time Notifications**
-   - WebSocket dla czatu
-   - Push notifications
-   - Live updates statusów
-
-4. **Payment Gateway Integration**
-   - Stripe / PayU integracja
-   - Płatności online
-
-5. **Document Generation**
-   - PDF faktury
-   - Druk zleceń
-
-6. **Analytics & Reporting**
-   - Raporty ze zleceń
-   - Zarobki mechaników
-   - Trendy usług
-
-7. **File Storage**
-   - Zdjęcia pojazdów
-   - Dokumentacja napraw
-   - Załączniki do wiadomości
-
-### 8.2 Frontend (NIE ZAIMPLEMENTOWANE)
-
-1. **Video/Photo Upload**
-   - Dodawanie zdjęć do zleceń
-   - Dokumentacja naprawy
-
-2. **Advanced Scheduling**
-   - Harmonogram mechaników
-   - Konflikt godzin
-   - Urlopy
-
-3. **Mobile App**
-   - Aplikacja mobilna (natywna)
-   - Offline mode
-
-4. **3D Visualization**
-   - Interaktywny model pojazdu w zleceniu
-   - Wizualizacja części do wymiany
-
-5. **Audit Trail**
-   - Historia zmian statusów
-   - Logi użytkowników
-   - Kto i kiedy zmienił co
-
----
-
-## 9. PROBLEMY I OGRANICZENIA
-
-### 9.1 Bezpieczeństwo
-- ⚠️ CORS: Otwarty dla wszystkich
-- ⚠️ Rate limiting: Ustawiony ale może być niewystarczający
-- ⚠️ HTTPS: Brak (development mode)
-- ⚠️ CSRF protection: Nie zaimplementowana
-
-### 9.2 Performance
-- ⚠️ Brak paginacji w wielu endpointach
-- ⚠️ Brak cachowania
-- ⚠️ SQLite nie optymalizowana dla dużych zbiorów
-
-### 9.3 UX
-- ⚠️ Brak animacji przejść między stronami
-- ⚠️ Brak skeleton loaders
-- ⚠️ Brak offline mode
-- ⚠️ Brak ciemnego motywu na wszystkich ekranach
-
-### 9.4 Testing
-- ⚠️ Brak testów jednostkowych
-- ⚠️ Brak testów integracyjnych
-- ⚠️ Brak testów E2E
-
----
-
-## 10. REKOMENDACJE
-
-### 10.1 Wysokiego Priorytetu
-1. ✅ ZROBIONE: UI do zmiany statusu wizyt
-2. ✅ ZROBIONE: Dropdown mechaników
-3. ✅ ZROBIONE: Konwersja wizyty na zlecenie
-4. ❌ **TODO**: Automatyczne tworzenie faktur po zakończeniu zlecenia
-5. ❌ **TODO**: Email integration (potwierdzenia, remindery)
-6. ❌ **TODO**: System powiadomień real-time (WebSocket)
-
-### 10.2 Średniego Priorytetu
-7. Audit trail (historia zmian)
-8. PDF export (faktury, raporty)
-9. SMS remindery
-10. Integracja kalendarza (Google Calendar sync)
-11. Zaawansowana analityka
-
-### 10.3 Niskiego Priorytetu
-12. Payment gateway integracja
-13. Mobile app (React Native)
-14. Video tutorial
-15. Multi-language support (i18n)
-16. Advanced 3D visualization
-
----
-
-## 11. INSTRUKCJE URUCHOMIENIA
+## 9. INSTRUKCJE URUCHOMIENIA
 
 ### Backend
 ```bash
@@ -927,7 +793,7 @@ Hasło: Mech1234
 
 ---
 
-## 12. PODSUMOWANIE
+## 11. PODSUMOWANIE
 
 **Aplikacja AutoRepair jest w stanie:**
 - ✅ Pełna autentykacja (login, register, password reset)
@@ -940,16 +806,4 @@ Hasło: Mech1234
 - ✅ Wiadomości między użytkownikami
 - ✅ Role-based access control (RBAC)
 
-**Główne braki do pełnej funkcjonalności:**
-- ❌ Email integration (remindery, potwierdzenia)
-- ❌ Automatyczne faktury
-- ❌ Real-time notifications
-- ❌ Audit trail
-- ❌ Payment integration
 
-**Ocena ogólna:**
-- Backend: **90%** gotowy
-- Frontend: **80%** gotowy
-- **Razem: 85%** MVP gotowy do testów
-
-Aplikacja jest **FUNKCJONALNA** i gotowa do wdrażania w środowisku testowym z instrukcją dla użytkowników.

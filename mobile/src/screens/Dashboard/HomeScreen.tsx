@@ -67,8 +67,12 @@ function sameDay(a: Date, b: Date) {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate()
-  const { hasPermission } = useAuth()
+  const { hasPermission, user } = useAuth()
   const [loadingLogout, setLoadingLogout] = useState(false)
+  const isClient = user?.rola === 'klient' || user?.rola === 'client'
+  const canViewOrders = hasPermission('canViewOrders')
+  const canViewWarehouse = hasPermission('canViewWarehouse')
+  const canViewInvoices = hasPermission('canViewInvoices')
 
 
   const [loadingData, setLoadingData] = useState(true)
@@ -106,6 +110,35 @@ const Dashboard: React.FC = () => {
   const filteredMenuItems = menuItems.filter(
     (item) => !item.permission || hasPermission(item.permission)
   )
+
+  const clientOffers = useMemo(() => {
+    return [
+      {
+        title: 'Wymiana oleju + filtry',
+        price: 'od 249 zł',
+        duration: 'ok. 60 min',
+        desc: 'Olej silnikowy + filtr oleju + kontrola płynów.'
+      },
+      {
+        title: 'Przegląd okresowy',
+        price: 'od 199 zł',
+        duration: 'ok. 45–90 min',
+        desc: 'Kontrola układów, diagnostyka, raport stanu pojazdu.'
+      },
+      {
+        title: 'Klimatyzacja – serwis',
+        price: 'od 159 zł',
+        duration: 'ok. 45 min',
+        desc: 'Odgrzybianie, uzupełnienie czynnika, test szczelności.'
+      },
+      {
+        title: 'Wymiana klocków hamulcowych',
+        price: 'od 299 zł',
+        duration: 'ok. 60–120 min',
+        desc: 'Przód lub tył, kontrola tarcz i płynu hamulcowego.'
+      },
+    ]
+  }, [])
 
   useEffect(() => {
     let alive = true
@@ -194,6 +227,7 @@ const Dashboard: React.FC = () => {
   }, [appointments])
 
   const kpis: KPI[] = useMemo(() => {
+    if (isClient) return []
     const now = new Date()
 
     const ordersToday = (orders || []).filter((o) => {
@@ -205,9 +239,7 @@ const Dashboard: React.FC = () => {
     }).length
 
     const inProgress = (orders || []).filter((o) => String(o?.status) === 'w_trakcie').length
-
     const low = (lowStock || []).length
-
     const pending = (invoices || []).filter((i) => String(i?.status) === 'oczekuje').length
     const overdue = (invoices || []).filter((i) => {
       if (!i?.due_date) return false
@@ -221,41 +253,48 @@ const Dashboard: React.FC = () => {
     const toneStock: KpiTone = low >= 3 ? 'bad' : low >= 1 ? 'warn' : 'ok'
     const toneInvoices: KpiTone = overdue >= 1 ? 'bad' : pending >= 4 ? 'warn' : 'ok'
 
-    return [
-      {
-        title: 'Zlecenia dziś',
-        value: String(ordersToday),
-        hint: 'wg start_at / created_at',
-        tone: toneOrders,
-        onClick: () => navigate('/zlecenia'),
-      },
-      {
-        title: 'W trakcie',
-        value: String(inProgress),
-        hint: 'status: w_trakcie',
-        tone: toneProgress,
-        onClick: () => navigate('/zlecenia'),
-      },
-      {
+    const items: KPI[] = []
+    if (canViewOrders) {
+      items.push(
+        {
+          title: 'Zlecenia dziś',
+          value: String(ordersToday),
+          hint: 'W trakcie dnia',
+          tone: toneOrders,
+          onClick: () => navigate('/zlecenia'),
+        },
+        {
+          title: 'W trakcie',
+          value: String(inProgress),
+          hint: 'status: w trakcie',
+          tone: toneProgress,
+          onClick: () => navigate('/zlecenia'),
+        }
+      )
+    }
+    if (canViewWarehouse) {
+      items.push({
         title: 'Braki magazynowe',
         value: String(low),
-        hint: low ? 'min_stock przekroczony' : 'brak alertów',
+        hint: low ? 'min ilość przekroczony' : 'brak alertów',
         tone: toneStock,
         onClick: () => navigate('/magazyn'),
-      },
-      {
+      })
+    }
+    if (canViewInvoices) {
+      items.push({
         title: 'Faktury oczekujące',
         value: String(pending),
         hint: overdue ? `${overdue} przetermin.` : 'bez zaległości',
         tone: toneInvoices,
         onClick: () => navigate('/faktury'),
-      },
-    ]
-  }, [orders, lowStock, invoices, navigate])
+      })
+    }
+    return items
+  }, [orders, lowStock, invoices, navigate, isClient, canViewOrders, canViewWarehouse, canViewInvoices])
 
   const activity: ActivityItem[] = useMemo(() => {
     const items: { tsIso: string; item: ActivityItem }[] = []
-
 
     ;(orders || [])
       .slice()
@@ -275,7 +314,6 @@ const Dashboard: React.FC = () => {
         })
       })
 
-
     ;(lowStock || []).slice(0, 1).forEach((p) => {
       const tsIso = p.created_at || new Date().toISOString()
       items.push({
@@ -289,7 +327,6 @@ const Dashboard: React.FC = () => {
         },
       })
     })
-
 
     ;(invoices || [])
       .slice()
@@ -309,7 +346,6 @@ const Dashboard: React.FC = () => {
         })
       })
 
-
     ;(appointments || [])
       .slice()
       .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
@@ -327,7 +363,6 @@ const Dashboard: React.FC = () => {
           },
         })
       })
-
 
     ;(threads || [])
       .slice()
@@ -347,7 +382,6 @@ const Dashboard: React.FC = () => {
         })
       })
 
-
     const unread = (notifications || []).filter((n) => !n.read_at)
     if (unread.length) {
       items.push({
@@ -362,33 +396,43 @@ const Dashboard: React.FC = () => {
       })
     }
 
-    return items
+    const allItems = items
       .sort((a, b) => new Date(b.tsIso).getTime() - new Date(a.tsIso).getTime())
       .slice(0, 5)
       .map((x) => x.item)
-  }, [orders, lowStock, invoices, appointments, threads, notifications, navigate])
+    return allItems.filter((x) => {
+      if (x.kind === 'order' && !canViewOrders) return false
+      if (x.kind === 'stock' && !canViewWarehouse) return false
+      if (x.kind === 'invoice' && !canViewInvoices) return false
+      return true
+    })
+  }, [orders, lowStock, invoices, appointments, threads, notifications, navigate, canViewOrders, canViewWarehouse, canViewInvoices])
 
   const alertList = useMemo(() => {
     const list: string[] = []
 
-    const low = (lowStock || []).length
-    if (low > 0) list.push(`Braki w magazynie: ${low} pozycji`)
+    if (canViewWarehouse) {
+      const low = (lowStock || []).length
+      if (low > 0) list.push(`Braki w magazynie: ${low} pozycji`)
+    }
 
     const now = new Date()
-    const overdue = (invoices || []).filter((i) => {
-      if (!i?.due_date) return false
-      const due = new Date(i.due_date)
-      if (Number.isNaN(due.getTime())) return false
-      return String(i?.status) !== 'zaplacona' && due.getTime() < now.getTime()
-    }).length
-    if (overdue > 0) list.push(`${overdue} faktura/y przeterminowana/e`)
+    if (canViewInvoices) {
+      const overdue = (invoices || []).filter((i) => {
+        if (!i?.due_date) return false
+        const due = new Date(i.due_date)
+        if (Number.isNaN(due.getTime())) return false
+        return String(i?.status) !== 'zaplacona' && due.getTime() < now.getTime()
+      }).length
+      if (overdue > 0) list.push(`${overdue} faktura/y przeterminowana/e`)
+    }
 
     const toConfirm = (appointments || []).filter((a) => String(a?.status) === 'do_potwierdzenia').length
     if (toConfirm > 0) list.push(`${toConfirm} wizyty do potwierdzenia`)
 
     if (!list.length) list.push('Brak krytycznych alertów 🎉')
     return list
-  }, [lowStock, invoices, appointments])
+  }, [lowStock, invoices, appointments, canViewWarehouse, canViewInvoices])
 
   const toneClass = (tone?: KpiTone) => {
     if (tone === 'ok') return 'kpi ok'
@@ -422,15 +466,18 @@ const Dashboard: React.FC = () => {
           {loadingData && <p style={{ opacity: 0.85, marginTop: 10 }}>⏳ Ładowanie danych…</p>}
           {!loadingData && error && <p style={{ color: '#ffb3b3', marginTop: 10 }}>⚠️ {error}</p>}
         </section>
-        <section className="kpi-grid">
-          {kpis.map((k) => (
-            <button key={k.title} className={toneClass(k.tone)} onClick={k.onClick}>
-              <div className="kpi-title">{k.title}</div>
-              <div className="kpi-value">{k.value}</div>
-              <div className="kpi-hint">{k.hint}</div>
-            </button>
-          ))}
-        </section>
+
+        {kpis.length > 0 && (
+          <section className="kpi-grid">
+            {kpis.map((k) => (
+              <button key={k.title} className={toneClass(k.tone)} onClick={k.onClick}>
+                <div className="kpi-title">{k.title}</div>
+                <div className="kpi-value">{k.value}</div>
+                <div className="kpi-hint">{k.hint}</div>
+              </button>
+            ))}
+          </section>
+        )}
         <section className="dashboard-grid">
           <div className="panel panel-wide">
             <div className="panel-header">
@@ -447,47 +494,91 @@ const Dashboard: React.FC = () => {
 
             <div className="panel-actions">
               <button className="btn-primary" onClick={() => navigate('/kalendarz')}>Umów nową wizytę</button>
-              <button className="btn-secondary" onClick={() => navigate('/zlecenia')}>Szczegóły</button>
+              {canViewOrders && (
+                <button className="btn-secondary" onClick={() => navigate('/zlecenia')}>Szczegóły</button>
+              )}
             </div>
 
             <div className="quick-actions">
               <button className="btn-secondary" onClick={() => navigate('/search')}>🔍 Szybkie wyszukiwanie</button>
               <button className="btn-secondary" onClick={() => navigate('/wiadomosci')}>💬 Wiadomości</button>
-              <button className="btn-secondary" onClick={() => navigate('/magazyn')}>📦 Magazyn</button>
+              {canViewWarehouse && (
+                <button className="btn-secondary" onClick={() => navigate('/magazyn')}>📦 Magazyn</button>
+              )}
             </div>
           </div>
 
           <div className="panel">
-            <div className="panel-header">
-              <h3>Ostatnia aktywność</h3>
-              <button className="btn-secondary" onClick={() => navigate('/wiadomosci')}>Wiadomości</button>
-            </div>
+            {isClient ? (
+              <>
+                <div className="panel-header">
+                  <h3>Oferty serwisu</h3>
+                  <button className="btn-secondary" onClick={() => navigate('/kalendarz')}>Umów wizytę</button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+                  {clientOffers.map((o) => (
+                    <div
+                      key={o.title}
+                      style={{
+                        padding: '14px',
+                        borderRadius: 12,
+                        background: 'linear-gradient(135deg, #151515 0%, #1f1f1f 100%)',
+                        border: '1px solid rgba(255,102,0,0.18)',
+                        color: '#fff',
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, marginBottom: 6, color: '#ffcc99' }}>{o.title}</div>
+                      <div style={{ fontSize: 14, opacity: 0.9 }}>{o.desc}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 13, color: '#ddd' }}>
+                        <span>{o.duration}</span>
+                        <span style={{ fontWeight: 700, color: '#ff6600' }}>{o.price}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="panel-header">
+                  <h3>Ostatnia aktywność</h3>
+                  <button className="btn-secondary" onClick={() => navigate('/wiadomosci')}>Wiadomości</button>
+                </div>
 
-            <div className="feed">
-              {activity.map((a) => (
-                <button key={a.id} className="feed-item" onClick={a.onClick}>
-                  <span className={`dot ${a.kind}`} />
-                  <div className="feed-main">
-                    <div className="feed-text">{a.text}</div>
-                    <div className="feed-ts">{a.ts}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
+                <div className="feed">
+                  {activity.map((a) => (
+                    <button key={a.id} className="feed-item" onClick={a.onClick}>
+                      <span className={`dot ${a.kind}`} />
+                      <div className="feed-main">
+                        <div className="feed-text">{a.text}</div>
+                        <div className="feed-ts">{a.ts}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
 
-            <div className="panel-actions">
-              <button className="btn-secondary" onClick={() => navigate('/magazyn')}>Sprawdź magazyn</button>
-              <button className="btn-secondary" onClick={() => navigate('/faktury')}>Faktury</button>
-            </div>
+                <div className="panel-actions">
+                  {(canViewWarehouse || canViewInvoices) && (
+                    <>
+                      {canViewWarehouse && (
+                        <button className="btn-secondary" onClick={() => navigate('/magazyn')}>Sprawdź magazyn</button>
+                      )}
+                      {canViewInvoices && (
+                        <button className="btn-secondary" onClick={() => navigate('/faktury')}>Faktury</button>
+                      )}
+                    </>
+                  )}
+                </div>
 
-            <div className="alert-box">
-              <div className="alert-title">⚠️ Alerty</div>
-              <ul className="alert-list">
-                {alertList.map((x, idx) => (
-                  <li key={idx}>{x}</li>
-                ))}
-              </ul>
-            </div>
+                <div className="alert-box">
+                  <div className="alert-title">⚠️ Alerty</div>
+                  <ul className="alert-list">
+                    {alertList.map((x, idx) => (
+                      <li key={idx}>{x}</li>
+                    ))}
+                  </ul>
+                </div>
+              </>
+            )}
           </div>
         </section>
       </main>

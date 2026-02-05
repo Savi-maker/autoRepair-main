@@ -17,7 +17,35 @@ export async function seedIfNeeded() {
 
   const countRow = await get<{ count: number }>(`SELECT COUNT(*) as count FROM users`);
   if (countRow && countRow.count > 0) {
-    console.log("ℹ️ Baza już zawiera dane — seed pominięty");
+    const partsCount = await get<{ count: number }>(`SELECT COUNT(*) as count FROM parts`);
+    if (!partsCount || partsCount.count === 0) {
+      console.log("ℹ️ Baza ma użytkowników, ale brak części — uzupełniam magazyn...");
+      const extraParts = [
+        { name: 'Filtr oleju', sku: 'FO-TEST-001', brand: 'Bosch', stock: 5, min: 2, price: 39.99, location: 'Regał A1' },
+        { name: 'Olej silnikowy 5W30', sku: 'OIL-TEST-001', brand: 'Castrol', stock: 1, min: 3, price: 199.99, location: 'Magazyn główny' },
+        { name: 'Klocki hamulcowe przód', sku: 'BRK-TEST-001', brand: 'ATE', stock: 4, min: 2, price: 249.99, location: 'Regał B2' },
+        { name: 'Tarcze hamulcowe przód', sku: 'BRK-TEST-002', brand: 'Zimmermann', stock: 2, min: 2, price: 399.99, location: 'Regał B3' },
+        { name: 'Filtr powietrza', sku: 'FLT-TEST-001', brand: 'Hengst', stock: 8, min: 2, price: 59.99, location: 'Regał A2' },
+        { name: 'Filtr kabinowy', sku: 'FLT-TEST-002', brand: 'Bosch', stock: 6, min: 2, price: 49.99, location: 'Regał A3' },
+        { name: 'Płyn hamulcowy DOT4', sku: 'FLD-TEST-001', brand: 'ATE', stock: 3, min: 2, price: 29.99, location: 'Regał C1' },
+        { name: 'Płyn chłodniczy', sku: 'FLD-TEST-002', brand: 'K2', stock: 5, min: 2, price: 34.99, location: 'Regał C2' },
+        { name: 'Świece zapłonowe', sku: 'IGN-TEST-001', brand: 'NGK', stock: 10, min: 4, price: 39.99, location: 'Regał D1' },
+        { name: 'Akumulator 74Ah', sku: 'BAT-TEST-001', brand: 'Varta', stock: 1, min: 2, price: 449.99, location: 'Regał E1' },
+        { name: 'Pasek wielorowkowy', sku: 'BLT-TEST-001', brand: 'Conti', stock: 2, min: 2, price: 89.99, location: 'Regał D2' },
+        { name: 'Wycieraczki komplet', sku: 'WIP-TEST-001', brand: 'Bosch', stock: 7, min: 3, price: 79.99, location: 'Regał A4' },
+      ];
+
+      for (const p of extraParts) {
+        await run(
+          `INSERT INTO parts (name, sku, brand, stock, min_stock, price, location)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [p.name, p.sku, p.brand, p.stock, p.min, p.price, p.location]
+        );
+      }
+      console.log("✅ Uzupełniono magazyn (parts)");
+    } else {
+      console.log("ℹ️ Baza już zawiera dane — seed pominięty");
+    }
     return;
   }
 
@@ -94,6 +122,27 @@ export async function seedIfNeeded() {
       ('Filtr oleju', 'FO-TEST-001', 'Bosch', 5, 2, 39.99, 'Regał A1'),
       ('Olej silnikowy 5W30', 'OIL-TEST-001', 'Castrol', 1, 3, 199.99, 'Magazyn główny')`
   );
+
+  const extraParts = [
+    { name: 'Klocki hamulcowe przód', sku: 'BRK-TEST-001', brand: 'ATE', stock: 4, min: 2, price: 249.99, location: 'Regał B2' },
+    { name: 'Tarcze hamulcowe przód', sku: 'BRK-TEST-002', brand: 'Zimmermann', stock: 2, min: 2, price: 399.99, location: 'Regał B3' },
+    { name: 'Filtr powietrza', sku: 'FLT-TEST-001', brand: 'Hengst', stock: 8, min: 2, price: 59.99, location: 'Regał A2' },
+    { name: 'Filtr kabinowy', sku: 'FLT-TEST-002', brand: 'Bosch', stock: 6, min: 2, price: 49.99, location: 'Regał A3' },
+    { name: 'Płyn hamulcowy DOT4', sku: 'FLD-TEST-001', brand: 'ATE', stock: 3, min: 2, price: 29.99, location: 'Regał C1' },
+    { name: 'Płyn chłodniczy', sku: 'FLD-TEST-002', brand: 'K2', stock: 5, min: 2, price: 34.99, location: 'Regał C2' },
+    { name: 'Świece zapłonowe', sku: 'IGN-TEST-001', brand: 'NGK', stock: 10, min: 4, price: 39.99, location: 'Regał D1' },
+    { name: 'Akumulator 74Ah', sku: 'BAT-TEST-001', brand: 'Varta', stock: 1, min: 2, price: 449.99, location: 'Regał E1' },
+    { name: 'Pasek wielorowkowy', sku: 'BLT-TEST-001', brand: 'Conti', stock: 2, min: 2, price: 89.99, location: 'Regał D2' },
+    { name: 'Wycieraczki komplet', sku: 'WIP-TEST-001', brand: 'Bosch', stock: 7, min: 3, price: 79.99, location: 'Regał A4' },
+  ];
+
+  for (const p of extraParts) {
+    await run(
+      `INSERT INTO parts (name, sku, brand, stock, min_stock, price, location)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [p.name, p.sku, p.brand, p.stock, p.min, p.price, p.location]
+    );
+  }
 
 
   await run(

@@ -13,6 +13,7 @@
 Zamiast jednego dużego, nieczytelnego diagramu, poniżej znajdują się 5 osobnych diagramów:
 - 📊 Diagram 0️⃣: **OGÓLNY** (Wszystkie UC i aktorzy)
 - 📊 Diagram 1️⃣: **KLIENT** (24 UC)
+- 📊 Diagram 1A: **RECEPCJA/KIEROWNIK** (6 UC)
 - 📊 Diagram 2️⃣: **MECHANIK/SERWIS** (28 UC)
 - 📊 Diagram 3️⃣: **ADMINISTRATOR** (16 UC)
 - 📊 Diagram 4️⃣: **SYSTEM** (2 UC)
@@ -25,6 +26,7 @@ Zamiast jednego dużego, nieczytelnego diagramu, poniżej znajdują się 5 osobn
 graph TD
     subgraph Actors["👥 AKTORZY"]
         Client["👤 KLIENT"]
+        ReceptionManager["🧑‍💼 RECEPCJA/KIEROWNIK"]
         Mechanic["🔧 MECHANIK"]
         Admin["👨‍💼 ADMIN"]
         System["🖥️ SYSTEM"]
@@ -54,6 +56,13 @@ graph TD
     Client -->|Dostęp| Message
     Client -->|Dostęp| Notif
     Client -->|Dostęp| Profile
+
+    ReceptionManager -->|Dostęp| Order
+    ReceptionManager -->|Dostęp| Booking
+    ReceptionManager -->|Dostęp| Invoice
+    ReceptionManager -->|Dostęp| Message
+    ReceptionManager -->|Dostęp| Parts
+    ReceptionManager -->|Dostęp| Profile
     
     Mechanic -->|Dostęp| Auth
     Mechanic -->|Dostęp| Order
@@ -88,7 +97,7 @@ graph TD
 ```
 
 **Statystyka**:
-- ✅ **45 Przypadków Użycia** (UC1-UC45)
+- ✅ **46 Przypadków Użycia** (UC1-UC46)
 - ✅ **4 Aktorów** z pełnym dostępem
 - ✅ **12 Kategorii Funkcjonalności**
 - ✅ **Logiczne relacje** między komponentami
@@ -173,6 +182,43 @@ graph TD
 
 **Liczba UC**: 24  
 **Główne funkcjonalności**: Zarządzanie pojazdem, wyszukiwanie serwisu, rezerwacja, płatności, komunikacja
+
+---
+
+## 📊 DIAGRAM 1A: RECEPCJA/KIEROWNIK (Reception/Manager)
+
+```mermaid
+graph TD
+    ReceptionManager["🧑‍💼 RECEPCJA/KIEROWNIK"]
+
+    subgraph OrdersRM["📋 ZLECENIA"]
+        UCRM10["Przeglądaj Zlecenia"]
+        UCRM11["Zmień Status Zlecenia"]
+        UCRM12["Utwórz Zlecenie"]
+        UCRM46["Przydziel Mechanika"]
+    end
+
+    subgraph BookingRM["📅 WIZYTY"]
+        UCRM19["Przeglądaj Wizyty"]
+        UCRM20["Zmień Status Wizyty"]
+    end
+
+    ReceptionManager --> OrdersRM
+    ReceptionManager --> BookingRM
+
+    UCRM46 -.->|includes| UCRM11
+
+    classDef rm fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    classDef group fill:#fffde7,stroke:#f57f17,stroke-width:2px
+    classDef uc fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px
+
+    class ReceptionManager rm
+    class OrdersRM,BookingRM group
+    class UCRM10,UCRM11,UCRM12,UCRM19,UCRM20,UCRM46 uc
+```
+
+**Liczba UC**: 6  
+**Główne funkcjonalności**: Obsługa wizyt, tworzenie zleceń i przydział mechanika
 
 ---
 
@@ -369,6 +415,7 @@ graph TD
 | UC12 | Zaakceptuj | Mechanik | Przyjęcie zlecenia | pending→accepted |
 | UC13 | Odrzuć | Mechanik | Odrzucenie | pending→rejected |
 | UC14 | Ukończ | Mechanik | Zakończenie | in-progress→completed |
+| UC46 | Przydziel Mechanika | Recepcja, Kierownik, Admin | Powiązanie zlecenia z mechanikiem | any |
 
 ---
 
@@ -481,7 +528,7 @@ graph TD
 | Admin | 4 | Users, Services, Roles, Config |
 | Analityka | 3 | Reports, Stats, Export |
 | Profil | 3 | View, Edit, Password |
-| **RAZEM** | **45** | **Wszystkie UC** |
+| **RAZEM** | **46** | **Wszystkie UC** |
 
 ---
 

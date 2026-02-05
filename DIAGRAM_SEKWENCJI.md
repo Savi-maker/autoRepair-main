@@ -295,6 +295,39 @@ sequenceDiagram
     Note over Mechanic: Klient otrzyma powiadomienie
 ```
 
+    ---
+
+    ### 4A. SCENARIUSZ: RECEPCJA TWORZY ZLECENIE Z WIZYTY I PRZYPISUJE MECHANIKA
+
+    ```mermaid
+    sequenceDiagram
+        participant Reception as 🧑‍💼 Recepcja
+        participant Frontend as 📱 Frontend
+        participant API as 🔗 API Backend
+        participant DB as 💾 Database
+
+        Reception->>Frontend: Otwiera szczegóły wizyty
+        Frontend->>API: GET /appointments/:id
+        API->>DB: SELECT appointment
+        API-->>Frontend: appointment
+
+        Reception->>Frontend: Pobiera listę mechaników
+        Frontend->>API: GET /users/mechanics
+        API->>DB: SELECT users WHERE rola='mechanik'
+        API-->>Frontend: mechanics_list
+
+        Reception->>Frontend: Wybiera mechanika i klika "Utwórz zlecenie"
+        Frontend->>API: POST /orders<br/>(customer_id, vehicle_id, service, mechanic_user_id)
+        API->>DB: INSERT order
+        API-->>Frontend: order_id
+
+        Frontend->>API: PATCH /appointments/:id<br/>(order_id)
+        API->>DB: UPDATE appointments
+        API-->>Frontend: OK
+
+        Frontend->>Reception: Przekierowanie do zleceń
+    ```
+
 ---
 
 ### 5. SCENARIUSZ: WYSŁANIE WIADOMOŚCI
