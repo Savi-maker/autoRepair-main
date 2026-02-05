@@ -2,7 +2,7 @@
 import type { AuthRequest } from "../middleware/auth.js";
 import { all, get, run } from "../db.js";
 
-const allowedStatuses = new Set(["zaplanowana", "w_trakcie", "zakonczona", "anulowana"]);
+const allowedStatuses = new Set(["oczekujacy", "zaakceptowany", "wykonano"]);
 
 export async function listAppointments(req: AuthRequest, res: Response) {
   try {
@@ -17,7 +17,7 @@ export async function listAppointments(req: AuthRequest, res: Response) {
 
     const offset = (page - 1) * limit;
 
-    const isCustomer = req.user.rola === "user";
+    const isCustomer = req.user.rola === "user" || req.user.rola === "klient";
     const customerId = req.user.customer_id;
 
     let query = `SELECT
@@ -110,8 +110,12 @@ export async function createAppointment(req: AuthRequest, res: Response) {
     }
 
 
-    const isCustomer = req.user.rola === "user";
-    if (isCustomer && customer_id && customer_id !== req.user.customer_id) {
+    const isCustomer = req.user.rola === "user" || req.user.rola === "klient";
+    
+    let finalCustomerId = customer_id;
+    if (isCustomer && req.user.customer_id) {
+      finalCustomerId = req.user.customer_id;
+    } else if (isCustomer && customer_id && customer_id !== req.user.customer_id) {
       return res.status(403).json({ error: "Nie możesz tworzyć wizyt dla innych klientów" });
     }
 
@@ -146,8 +150,8 @@ export async function createAppointment(req: AuthRequest, res: Response) {
         String(title),
         start_at,
         end_at ?? null,
-        status ?? "zaplanowana",
-        customer_id ?? null,
+        status ?? "oczekujacy",
+        finalCustomerId ?? null,
         vehicle_id ?? null,
         order_id ?? null,
         notes ?? null
@@ -171,8 +175,8 @@ export async function updateAppointment(req: AuthRequest, res: Response) {
       return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
     }
 
-    const { title, start_at, end_at, status, notes } = req.body ?? {};
-    if (title == null && start_at == null && end_at == null && status == null && notes == null) {
+    const { title, start_at, end_at, status, notes, order_id } = req.body ?? {};
+    if (title == null && start_at == null && end_at == null && status == null && notes == null && order_id == null) {
       return res.status(400).json({ success: false, message: "Podaj pole do aktualizacji" });
     }
 
@@ -182,6 +186,11 @@ export async function updateAppointment(req: AuthRequest, res: Response) {
         message: "Nieprawidłowy status",
         allowed: Array.from(allowedStatuses)
       });
+    }
+
+    if (order_id != null) {
+      const o = await get(`SELECT id FROM orders WHERE id = ?`, [Number(order_id)]);
+      if (!o) return res.status(400).json({ success: false, message: "Nie istnieje order_id" });
     }
 
     const existing = await get(`SELECT id FROM appointments WHERE id = ?`, [id]);
@@ -209,6 +218,10 @@ export async function updateAppointment(req: AuthRequest, res: Response) {
     if (notes != null) {
       fields.push("notes = ?");
       params.push(notes);
+    }
+    if (order_id != null) {
+      fields.push("order_id = ?");
+      params.push(order_id);
     }
 
     params.push(id);

@@ -17,6 +17,7 @@ function normalizeRole(role?: string): string {
   if (r === "kierownik" || r === "manager") return "kierownik";
   if (r === "mechanik" || r === "mechanic") return "mechanik";
   if (r === "recepcja" || r === "receptionist") return "recepcja";
+  if (r === "klient" || r === "client") return "klient";
   return "user";
 }
 
@@ -39,16 +40,16 @@ function isAdminRequest(req: Request): boolean {
 
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 5000,
   message: 'Zbyt wiele żądań z tego adresu IP, spróbuj ponownie później.',
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => isAdminRequest(req), // Admini omijają limit
+  skip: (req) => isAdminRequest(req),
 })
 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 15,
   message: 'Zbyt wiele prób logowania, spróbuj ponownie za 15 minut.',
   skipSuccessfulRequests: true,
   standardHeaders: true,
@@ -57,11 +58,11 @@ export const authLimiter = rateLimit({
 
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 10000,
   message: 'Zbyt wiele żądań do tego endpointu, spróbuj ponownie później.',
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => isAdminRequest(req), // Admini omijają limit
+  skip: (req) => isAdminRequest(req),
 })
 
 export function helmetMiddleware() {

@@ -6,6 +6,7 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Stage, ContactShadows, Environment } from '@react-three/drei'
 import CyberpunkCar from '../../components/models/cyberpunkCar'
 import { canUseWebGL } from '../../utils/webglDetect'
+import { useAuth } from '../../utils/useAuth'
 
 import {
   getVehicles,
@@ -18,6 +19,7 @@ import {
 
 export default function Pojazdy() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [q, setQ] = useState('')
 
   const [loading, setLoading] = useState(true)
@@ -119,13 +121,20 @@ export default function Pojazdy() {
 
   const data = useMemo(() => {
     const qLower = q.trim().toLowerCase()
-    return vehicles.filter((v) => {
+    let filtered = vehicles
+    
+    // Filter by customer if user is 'klient' or 'user'
+    if (user && (user.rola === 'klient' || user.rola === 'user') && user.customer_id) {
+      filtered = filtered.filter((v) => v.customer_id === user.customer_id)
+    }
+    
+    return filtered.filter((v) => {
       if (!qLower) return true
       const owner = customers.find((c) => c.id === v.customer_id)?.name ?? ''
       const hay = `${v.make} ${v.model} ${v.plate} ${owner}`.toLowerCase()
       return hay.includes(qLower)
     })
-  }, [q, vehicles, customers])
+  }, [q, vehicles, customers, user])
 
   const submitAdd = async () => {
     setAddError(null)

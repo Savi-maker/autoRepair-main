@@ -13,11 +13,13 @@ import {
   getOrders,
   getVehicles,
   getCustomers,
+  getMechanics,
   createOrder,
   updateOrder,
   type OrderType,
   type VehicleType,
   type CustomerType,
+  type AdminUserType,
 } from '../../utils/api'
 
 type UiOrderStatus = 'oczekujące' | 'w trakcie' | 'zakończone' | 'anulowane'
@@ -39,7 +41,7 @@ function mapUiToBackendStatus(s: UiOrderStatus) {
 
 export default function Zlecenia() {
   const navigate = useNavigate()
-  const { hasPermission } = useAuth()
+  const { hasPermission, user } = useAuth()
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<FilterStatus>('wszystkie')
 
@@ -56,6 +58,7 @@ export default function Zlecenia() {
   })
   const [vehicles, setVehicles] = useState<VehicleType[]>([])
   const [customers, setCustomers] = useState<CustomerType[]>([])
+  const [users, setUsers] = useState<AdminUserType[]>([])
 
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -105,7 +108,7 @@ export default function Zlecenia() {
     "Distributor_7": 'Rozdzielacz zapłonu',
     "Transmission_8": 'Skrzynia biegów',
     "Fuel pump_9": 'Pompa paliwa',
-    "Oil_pump": 'Pompa olejowa', // Dodano pompę olejową
+    "Oil_pump": 'Pompa olejowa',
     "Pulleys_10": 'Koła pasowe',
     "Belt_11": 'Pasek napędowy',
     "Alternator.2_12": 'Alternator',
@@ -170,9 +173,9 @@ export default function Zlecenia() {
     setLoading(true)
     setError(null)
 
-    const results = await Promise.allSettled([getOrders(page, 20), getVehicles(), getCustomers()])
+    const results = await Promise.allSettled([getOrders(page, 20), getVehicles(), getCustomers(), getMechanics()])
 
-    const [oRes, vRes, cRes] = results
+    const [oRes, vRes, cRes, uRes] = results
 
     if (oRes.status === 'fulfilled' && oRes.value.success) {
       setOrders(oRes.value.data || [])
@@ -186,6 +189,9 @@ export default function Zlecenia() {
     if (cRes.status === 'fulfilled' && cRes.value.success) {
       setCustomers(cRes.value.data || [])
     }
+    if (uRes.status === 'fulfilled' && uRes.value.success) {
+      setUsers(uRes.value.data || [])
+    }
 
     const hasError = results.some(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success))
     if (hasError) {
@@ -193,6 +199,7 @@ export default function Zlecenia() {
       if (oRes.status === 'rejected' || (oRes.status === 'fulfilled' && !oRes.value.success)) failedLoads.push('zlecenia')
       if (vRes.status === 'rejected' || (vRes.status === 'fulfilled' && !vRes.value.success)) failedLoads.push('pojazdy')
       if (cRes.status === 'rejected' || (cRes.status === 'fulfilled' && !cRes.value.success)) failedLoads.push('klienci')
+      if (uRes.status === 'rejected' || (uRes.status === 'fulfilled' && !uRes.value.success)) failedLoads.push('użytkownicy')
       setError(`Błąd pobierania: ${failedLoads.join(', ')}`)
     }
 
@@ -215,6 +222,10 @@ export default function Zlecenia() {
     return vehicles.filter((v) => v.customer_id === Number(customerId))
   }, [vehicles, customerId])
 
+  const mechanics = useMemo(() => {
+    return users.filter((u) => u.rola === 'mechanik')
+  }, [users])
+
   useEffect(() => {
     if (!customerId) {
       setVehicleId('')
@@ -228,8 +239,12 @@ export default function Zlecenia() {
 
   const data = useMemo(() => {
     const qLower = q.trim().toLowerCase()
+    let filtered = (orders || [])
 
-    return (orders || [])
+    // Backend already filters by customer_id for klient/user roles
+    // No need to filter again here
+
+    return filtered
       .filter((o) => {
         if (status === 'wszystkie') return true
         const uiStatus = mapBackendToUiStatus(String(o.status))
@@ -556,10 +571,9 @@ export default function Zlecenia() {
                 <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, color: '#ffcc99' }}>
                   Mechanik (opcjonalnie)
                 </label>
-                <input
+                <select
                   value={mechanicUserId}
                   onChange={(e) => setMechanicUserId(e.target.value)}
-                  placeholder="np. 2"
                   style={{
                     width: '100%',
                     padding: '10px 12px',
@@ -568,7 +582,14 @@ export default function Zlecenia() {
                     background: '#0f0f0f',
                     color: '#fff',
                   }}
-                />
+                >
+                  <option value="">Wybierz mechanika…</option>
+                  {mechanics.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.imie} {m.nazwisko} ({m.mail})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

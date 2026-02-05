@@ -2,14 +2,19 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppButton from '../../components/AppButton/AppButton'
 import './Kalendarz.css'
+import { useAuth } from '../../utils/useAuth'
 import {
   getAppointments,
   getVehicles,
   getCustomers,
   createAppointment,
+  updateAppointment,
+  createOrder,
+  getMechanics,
   type AppointmentType,
   type VehicleType,
   type CustomerType,
+  type AdminUserType,
 } from '../../utils/api'
 
 function pad(n: number) {
@@ -22,6 +27,7 @@ function toISODate(d: Date) {
 
 export default function Kalendarz() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [selected, setSelected] = useState<string>(toISODate(new Date()))
 
   const [loading, setLoading] = useState(true)
@@ -30,6 +36,7 @@ export default function Kalendarz() {
   const [appointments, setAppointments] = useState<AppointmentType[]>([])
   const [vehicles, setVehicles] = useState<VehicleType[]>([])
   const [customers, setCustomers] = useState<CustomerType[]>([])
+  const [mechanics, setMechanics] = useState<AdminUserType[]>([])
   const [appointmentPagination, setAppointmentPagination] = useState<any>({ page: 1, limit: 50, total: 0, totalPages: 1 })
   const [appointmentPage, setAppointmentPage] = useState(1)
 
@@ -43,6 +50,14 @@ export default function Kalendarz() {
   const [startAt, setStartAt] = useState('')
   const [endAt, setEndAt] = useState('')
   const [notes, setNotes] = useState('')
+
+  // Szczegóły wizyty
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentType | null>(null)
+  const [newStatus, setNewStatus] = useState<string>('')
+  const [updatingStatus, setUpdatingStatus] = useState(false)
+  const [updateError, setUpdateError] = useState<string | null>(null)
+  const [mechanicUserId, setMechanicUserId] = useState<string>('')
 
   const resetForm = () => {
     setTitle('')
@@ -59,6 +74,82 @@ export default function Kalendarz() {
     resetForm()
   }
 
+  const openDetails = (appointment: AppointmentType) => {
+    setSelectedAppointment(appointment)
+    setNewStatus(appointment.status || 'oczekujacy')
+    setUpdateError(null)
+    setMechanicUserId('')
+    setDetailsOpen(true)
+  }
+
+  const closeDetails = () => {
+    setDetailsOpen(false)
+    setSelectedAppointment(null)
+    setNewStatus('')
+    setUpdateError(null)
+    setMechanicUserId('')
+  }
+
+  const updateStatus = async () => {
+    if (!selectedAppointment) return
+    
+    setUpdatingStatus(true)
+    setUpdateError(null)
+    
+    const resp = await updateAppointment(selectedAppointment.id, { status: newStatus })
+    setUpdatingStatus(false)
+    
+    if (!resp.success) {
+      setUpdateError(resp.message || 'Nie udało się zaktualizować statusu')
+      return
+    }
+    
+    closeDetails()
+    await reloadAll()
+  }
+
+  const convertToOrder = async () => {
+    if (!selectedAppointment) return
+    
+    setUpdatingStatus(true)
+    setUpdateError(null)
+    
+    // Utwórz zlecenie z danych wizyty
+    const orderResp = await createOrder({
+      service: selectedAppointment.title || 'Zlecenie z wizyty',
+      opis: selectedAppointment.notes || null,
+      customer_id: selectedAppointment.customer_id,
+      vehicle_id: selectedAppointment.vehicle_id,
+      mechanic_user_id: mechanicUserId.trim() ? Number(mechanicUserId) : null,
+      start_at: selectedAppointment.start_at,
+      status: 'nowe',
+    })
+    
+    if (!orderResp.success) {
+      setUpdateError(orderResp.message || 'Nie udało się utworzyć zlecenia')
+      setUpdatingStatus(false)
+      return
+    }
+    
+    // Zaktualizuj wizytę z order_id
+    const updateResp = await updateAppointment(selectedAppointment.id, { 
+      order_id: orderResp.data?.id 
+    })
+    
+    setUpdatingStatus(false)
+    
+    if (!updateResp.success) {
+      setUpdateError('Zlecenie utworzone, ale nie udało się zaktualizować wizyty')
+      return
+    }
+    
+    closeDetails()
+    await reloadAll()
+    
+    // Przekieruj do zleceń
+    navigate('/zlecenia')
+  }
+
   const reloadAll = async (page: number = 1) => {
     setLoading(true)
     setError(null)
@@ -67,9 +158,10 @@ export default function Kalendarz() {
       getAppointments(page, 50),
       getVehicles(),
       getCustomers(),
+      getMechanics(),
     ])
 
-    const [aRes, vRes, cRes] = results
+    const [aRes, vRes, cRes, mRes] = results
 
     if (aRes.status === 'fulfilled' && aRes.value.success) {
       setAppointments(aRes.value.data || [])
@@ -83,6 +175,9 @@ export default function Kalendarz() {
     if (cRes.status === 'fulfilled' && cRes.value.success) {
       setCustomers(cRes.value.data || [])
     }
+    if (mRes.status === 'fulfilled' && mRes.value.success) {
+      setMechanics(mRes.value.data || [])
+    }
 
     const hasError = results.some(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success))
     if (hasError) {
@@ -90,6 +185,7 @@ export default function Kalendarz() {
       if (aRes.status === 'rejected' || (aRes.status === 'fulfilled' && !aRes.value.success)) failedLoads.push('wizyty')
       if (vRes.status === 'rejected' || (vRes.status === 'fulfilled' && !vRes.value.success)) failedLoads.push('pojazdy')
       if (cRes.status === 'rejected' || (cRes.status === 'fulfilled' && !cRes.value.success)) failedLoads.push('klienci')
+      if (mRes.status === 'rejected' || (mRes.status === 'fulfilled' && !mRes.value.success)) failedLoads.push('mechanicy')
       setError(`Błąd pobierania: ${failedLoads.join(', ')}`)
     }
 
@@ -119,10 +215,27 @@ export default function Kalendarz() {
     return arr
   }, [])
 
+  const filteredCustomers = useMemo(() => {
+    if (user && (user.rola === 'klient' || user.rola === 'user') && user.customer_id) {
+      return customers.filter((c) => c.id === user.customer_id)
+    }
+    return customers
+  }, [customers, user])
+
   const vehiclesForCustomer = useMemo(() => {
     if (!customerId) return []
-    return vehicles.filter((v) => v.customer_id === Number(customerId))
-  }, [vehicles, customerId])
+    let vList = vehicles.filter((v) => v.customer_id === Number(customerId))
+    if (user && (user.rola === 'klient' || user.rola === 'user') && user.customer_id) {
+      vList = vList.filter((v) => v.customer_id === user.customer_id)
+    }
+    return vList
+  }, [vehicles, customerId, user])
+
+  useEffect(() => {
+    if (user && (user.rola === 'klient' || user.rola === 'user') && user.customer_id && !customerId) {
+      setCustomerId(user.customer_id)
+    }
+  }, [user])
 
   useEffect(() => {
     if (!customerId) {
@@ -136,10 +249,16 @@ export default function Kalendarz() {
   }, [customerId])
 
   const dayVisits = useMemo(() => {
-    return (appointments || [])
+    let filtered = (appointments || [])
       .filter((v) => String(v.start_at || '').slice(0, 10) === selected)
       .sort((a, b) => String(a.start_at || '').localeCompare(String(b.start_at || '')))
-  }, [appointments, selected])
+    
+    if (user && (user.rola === 'klient' || user.rola === 'user') && user.customer_id) {
+      filtered = filtered.filter((a) => a.customer_id === user.customer_id)
+    }
+    
+    return filtered
+  }, [appointments, selected, user])
 
   const submitCreate = async () => {
     setFormError(null)
@@ -147,7 +266,11 @@ export default function Kalendarz() {
     const t = title.trim()
     if (!t) return setFormError('Uzupełnij pole: Tytuł')
     if (!startAt) return setFormError('Uzupełnij pole: Start')
-    if (!customerId) return setFormError('Wybierz klienta')
+    
+    const isKlient = user && (user.rola === 'klient' || user.rola === 'user')
+    const effectiveCustomerId = isKlient && user.customer_id ? user.customer_id : customerId
+    
+    if (!effectiveCustomerId) return setFormError('Wybierz klienta')
     if (!vehicleId) return setFormError('Wybierz pojazd')
 
     const startIso = startAt ? new Date(startAt).toISOString() : undefined
@@ -166,8 +289,8 @@ export default function Kalendarz() {
       title: t,
       start_at: startIso,
       end_at: endIso,
-      status: 'zaplanowana',
-      customer_id: Number(customerId),
+      status: 'oczekujacy',
+      customer_id: Number(effectiveCustomerId),
       vehicle_id: Number(vehicleId),
       order_id: undefined,
       notes: notes.trim() ? notes.trim() : undefined,
@@ -251,7 +374,7 @@ export default function Kalendarz() {
                 </div>
 
                 <div className="card-actions">
-                  <button className="btn-secondary">Szczegóły</button>
+                  <button className="btn-secondary" onClick={() => openDetails(v)}>Szczegóły</button>
                   <button className="btn-secondary">Przełóż</button>
                 </div>
               </div>
@@ -357,6 +480,7 @@ export default function Kalendarz() {
                 />
               </div>
 
+              {!(user && (user.rola === 'klient' || user.rola === 'user')) && (
               <div>
                 <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, color: '#ffcc99' }}>Klient</label>
                 <select
@@ -372,13 +496,14 @@ export default function Kalendarz() {
                   }}
                 >
                   <option value="">Wybierz klienta…</option>
-                  {customers.map((c) => (
+                  {filteredCustomers.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
                   ))}
                 </select>
               </div>
+              )}
 
               <div>
                 <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, color: '#ffcc99' }}>Pojazd</label>
@@ -467,6 +592,193 @@ export default function Kalendarz() {
               <button className="k-btn-primary" onClick={submitCreate} disabled={saving}>
                 {saving ? 'Zapisywanie…' : 'Zapisz wizytę'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal szczegółów wizyty */}
+      {detailsOpen && selectedAppointment && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.75)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 16,
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              width: 'min(720px, 100%)',
+              background: 'linear-gradient(135deg, #151515 0%, #222 100%)',
+              border: '1px solid rgba(255,102,0,0.15)',
+              borderRadius: 14,
+              padding: 18,
+              boxShadow: '0 18px 40px rgba(0,0,0,0.55)',
+              color: '#fff',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+              <h2 style={{ margin: 0, color: '#ff6600' }}>Szczegóły wizyty</h2>
+              <button className="btn-secondary" onClick={closeDetails} disabled={updatingStatus}>
+                Zamknij
+              </button>
+            </div>
+
+            <div style={{ marginTop: 16, display: 'grid', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontWeight: 700, marginBottom: 4, color: '#ffcc99' }}>Tytuł</label>
+                <div style={{ padding: '8px 0', color: '#fff' }}>{selectedAppointment.title}</div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: 4, color: '#ffcc99' }}>Klient</label>
+                  <div style={{ padding: '8px 0', color: '#fff' }}>
+                    {customers.find(c => c.id === selectedAppointment.customer_id)?.name || `Klient #${selectedAppointment.customer_id || '—'}`}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: 4, color: '#ffcc99' }}>Pojazd</label>
+                  <div style={{ padding: '8px 0', color: '#fff' }}>
+                    {(() => {
+                      const veh = vehicles.find(v => v.id === selectedAppointment.vehicle_id)
+                      return veh
+                        ? `${veh.make} ${veh.model} ${veh.year ?? ''} — ${veh.plate}`.trim()
+                        : `Pojazd #${selectedAppointment.vehicle_id || '—'}`
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: 4, color: '#ffcc99' }}>Start</label>
+                  <div style={{ padding: '8px 0', color: '#fff' }}>
+                    {selectedAppointment.start_at ? new Date(selectedAppointment.start_at).toLocaleString('pl-PL') : '—'}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: 4, color: '#ffcc99' }}>Koniec</label>
+                  <div style={{ padding: '8px 0', color: '#fff' }}>
+                    {selectedAppointment.end_at ? new Date(selectedAppointment.end_at).toLocaleString('pl-PL') : '—'}
+                  </div>
+                </div>
+              </div>
+
+              {selectedAppointment.notes && (
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: 4, color: '#ffcc99' }}>Notatki</label>
+                  <div style={{ padding: '8px 0', color: '#fff', whiteSpace: 'pre-wrap' }}>{selectedAppointment.notes}</div>
+                </div>
+              )}
+
+              {/* Status - zmiana tylko dla recepcji/kierownika/admina */}
+              {user && (user.rola === 'recepcja' || user.rola === 'kierownik' || user.rola === 'admin') ? (
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, color: '#ffcc99' }}>Status</label>
+                  <select
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value)}
+                    disabled={updatingStatus}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: '1px solid rgba(255,102,0,0.18)',
+                      background: '#0f0f0f',
+                      color: '#fff',
+                    }}
+                  >
+                    <option value="oczekujacy">Oczekujący</option>
+                    <option value="zaakceptowany">Zaakceptowany</option>
+                    <option value="wykonano">Wykonano</option>
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: 4, color: '#ffcc99' }}>Status</label>
+                  <div style={{ padding: '8px 0', color: '#fff' }}>
+                    {selectedAppointment.status === 'oczekujacy' && 'Oczekujący'}
+                    {selectedAppointment.status === 'zaakceptowany' && 'Zaakceptowany'}
+                    {selectedAppointment.status === 'wykonano' && 'Wykonano'}
+                    {!['oczekujacy', 'zaakceptowany', 'wykonano'].includes(selectedAppointment.status || '') && (selectedAppointment.status || '—')}
+                  </div>
+                </div>
+              )}
+
+              {user && (user.rola === 'recepcja' || user.rola === 'kierownik' || user.rola === 'admin') && !selectedAppointment.order_id && (
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, color: '#ffcc99' }}>
+                    Mechanik (opcjonalnie)
+                  </label>
+                  <select
+                    value={mechanicUserId}
+                    onChange={(e) => setMechanicUserId(e.target.value)}
+                    disabled={updatingStatus}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: '1px solid rgba(255,102,0,0.18)',
+                      background: '#0f0f0f',
+                      color: '#fff',
+                    }}
+                  >
+                    <option value="">Wybierz mechanika…</option>
+                    {mechanics.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.imie} {m.nazwisko} ({m.mail})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {updateError && <div style={{ marginTop: 12, color: '#ffb3b3' }}>⚠️ {updateError}</div>}
+
+            <div style={{ marginTop: 18, display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+              <div>
+                {user && (user.rola === 'recepcja' || user.rola === 'kierownik' || user.rola === 'admin') && !selectedAppointment.order_id && (
+                  <button 
+                    className="btn-secondary" 
+                    onClick={convertToOrder} 
+                    disabled={updatingStatus}
+                    style={{ background: 'rgba(0, 200, 100, 0.15)', borderColor: 'rgba(0, 200, 100, 0.3)' }}
+                  >
+                    {updatingStatus ? '…' : '📋 Utwórz zlecenie'}
+                  </button>
+                )}
+                {selectedAppointment.order_id && (
+                  <div style={{ fontSize: '0.9em', color: '#90EE90', padding: '8px 12px' }}>
+                    ✅ Powiązane ze zleceniem #{selectedAppointment.order_id}
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn-secondary" onClick={closeDetails} disabled={updatingStatus}>
+                  Zamknij
+                </button>
+                {user && (user.rola === 'recepcja' || user.rola === 'kierownik' || user.rola === 'admin') && (
+                  <button 
+                    className="k-btn-primary" 
+                    onClick={updateStatus} 
+                    disabled={updatingStatus || newStatus === selectedAppointment.status}
+                  >
+                    {updatingStatus ? 'Zapisywanie…' : 'Zapisz status'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

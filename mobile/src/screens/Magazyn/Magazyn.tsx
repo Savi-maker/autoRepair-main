@@ -342,8 +342,6 @@ export default function Magazyn() {
           )
         })}
       </div>
-
-      {/* MODAL: add/edit */}
       {openPartModal && (
         <div
           onClick={(e) => {
@@ -513,8 +511,6 @@ export default function Magazyn() {
           </div>
         </div>
       )}
-
-      {/* MODAL: reserve */}
       {openReserve && reservePart && (
         <div
           onClick={(e) => {
@@ -591,8 +587,6 @@ export default function Magazyn() {
           </div>
         </div>
       )}
-
-      {/* MODAL: order (UI only) */}
       {openOrder && orderPart && (
         <div
           onClick={(e) => {

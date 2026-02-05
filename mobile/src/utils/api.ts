@@ -9,6 +9,7 @@ export interface ProfileType {
   mail: string;
   telefon: string;
   rola: string;
+  customer_id?: number;
 }
 
 export interface OrderType {
@@ -445,6 +446,10 @@ export interface AdminUserType {
 
 export function getUsersAdmin(): Promise<ApiResponse<AdminUserType[]>> {
   return apiFetch<AdminUserType[]>("/admin/users", { method: "GET" });
+}
+
+export function getMechanics(): Promise<ApiResponse<AdminUserType[]>> {
+  return apiFetch<AdminUserType[]>("/users/mechanics", { method: "GET" });
 }
 
 export function createUserAdmin(data: {

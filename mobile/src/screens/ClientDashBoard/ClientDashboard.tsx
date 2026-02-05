@@ -32,7 +32,7 @@ const ClientDashboard: React.FC = () => {
       id: 2,
       date: "20.11.2025 09:00",
       service: "Diagnostyka",
-      status: "Zaplanowana",
+      status: "Oczekująca",
     },
   ];
 
@@ -43,7 +43,6 @@ const ClientDashboard: React.FC = () => {
 
   return (
     <div className="dashboard-container">
-      {/* ===== HEADER ===== */}
       <header className="dashboard-header">
         <h1>🔧 AutoRepair</h1>
         <button className="btn-secondary" onClick={() => navigate("/login")}>
@@ -51,7 +50,6 @@ const ClientDashboard: React.FC = () => {
         </button>
       </header>
 
-      {/* ===== TOP MENU ===== */}
       <div className="top-menu-bar">
         {menuItems.map((item) => (
           <button
@@ -67,9 +65,7 @@ const ClientDashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* ===== MAIN ===== */}
       <main className="dashboard-main">
-        {/* STATUS */}
         <section className="panel panel-wide">
           <h2>Aktualna naprawa</h2>
           <p><strong>{currentOrder.vehicle}</strong></p>
@@ -83,7 +79,6 @@ const ClientDashboard: React.FC = () => {
           <p className="status-text">Status: {currentOrder.status}</p>
         </section>
 
-        {/* VISITS + VEHICLES */}
         <section className="dashboard-grid">
           <div className="panel">
             <h3>Najbliższe wizyty</h3>
@@ -115,7 +110,6 @@ const ClientDashboard: React.FC = () => {
           </div>
         </section>
 
-        {/* QUICK ACTIONS */}
         <section className="panel">
           <h3>Szybkie akcje</h3>
           <div className="quick-actions">

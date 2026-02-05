@@ -33,7 +33,7 @@ export async function listOrders(req: AuthRequest, res: Response) {
 
     const role = getRole(req);
     const isAdmin = canSeeAll(req);
-    const isCustomer = role === "user";
+    const isCustomer = role === "user" || role === "klient";
     const isMechanic = role === "mechanik";
     const customerId = req.user.customer_id;
 
@@ -131,7 +131,7 @@ export async function getOrderById(req: AuthRequest, res: Response) {
     const role = getRole(req);
     const isAdmin = canSeeAll(req);
     const isOwner = row.created_by_user_id === req.user.id;
-    const isCustomer = role === "user" && req.user.customer_id && row.customer_id === req.user.customer_id;
+    const isCustomer = role === "user" || role === "klient" && req.user.customer_id && row.customer_id === req.user.customer_id;
     const isMechanic = role === "mechanik" && row.mechanic_user_id === req.user.id;
 
     if (!isAdmin && !isOwner && !isCustomer && !isMechanic) {
@@ -173,10 +173,6 @@ export async function createOrder(req: AuthRequest, res: Response) {
     if (!vehicle) return res.status(400).json({ success: false, message: "Nie istnieje vehicle_id" });
     if (vehicle.customer_id !== Number(customer_id)) {
       return res.status(400).json({ success: false, message: "Pojazd nie należy do podanego klienta" });
-    }
-
-    if (isMechanic && mechanic_user_id != null) {
-      return res.status(403).json({ success: false, message: "Brak uprawnień" });
     }
 
     if (mechanic_user_id != null) {

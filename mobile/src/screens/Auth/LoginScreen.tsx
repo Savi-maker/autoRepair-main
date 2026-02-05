@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { login } from '../../utils/api'
+import { hashPassword, validateEmail } from '../../utils/helpers'
 import './Auth.css'
 
 const LoginScreen: React.FC = () => {
@@ -10,11 +11,6 @@ const LoginScreen: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return emailRegex.test(email)
-  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,7 +29,8 @@ const LoginScreen: React.FC = () => {
 
     setLoading(true)
     try {
-      const response = await login(email, password)
+      const hashedPassword = await hashPassword(password)
+      const response = await login(email, hashedPassword)
       if (response.success) {
         setSuccess('Zalogowano pomyślnie!')
         setTimeout(() => navigate('/home'), 600)

@@ -16,6 +16,7 @@ export function normalizeRole(role?: string): string {
   if (r === "kierownik" || r === "manager") return "kierownik";
   if (r === "mechanik" || r === "mechanic") return "mechanik";
   if (r === "recepcja" || r === "receptionist") return "recepcja";
+  if (r === "klient" || r === "client") return "klient";
   return "user";
 }
 

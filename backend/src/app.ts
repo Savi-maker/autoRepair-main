@@ -28,6 +28,7 @@ import adminUsersRoutes from "./routes/adminUsers.routes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import suppliersRoutes from "./routes/suppliersRoutes.js";
 import scheduleRoutes from "./routes/scheduleRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 const app = express();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -51,6 +52,7 @@ app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/me", meRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/admin", adminUsersRoutes);
+app.use("/api/users", apiLimiter, userRoutes);
 
 app.use("/api/orders", apiLimiter, orderRoutes);
 app.use("/api/notifications", apiLimiter, notificationRoutes);

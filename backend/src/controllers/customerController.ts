@@ -17,7 +17,7 @@ export async function listCustomers(req: AuthRequest, res: Response) {
     const offset = (page - 1) * limit;
 
     const role = normalizeRole(req.user.rola);
-    const isUser = role === "user";
+    const isUser = role === "user" || role === "klient";
     const isViewer = role === "admin" || role === "kierownik" || role === "recepcja" || role === "mechanik" || isUser;
     if (!isViewer) return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
 
@@ -72,13 +72,13 @@ export async function getCustomerById(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
     const role = normalizeRole(req.user.rola);
-    const isViewer = role === "admin" || role === "kierownik" || role === "recepcja" || role === "mechanik" || role === "user";
+    const isViewer = role === "admin" || role === "kierownik" || role === "recepcja" || role === "mechanik" || role === "user" || role === "klient";
     if (!isViewer) return res.status(403).json({ success: false, message: "Brak uprawnień" });
 
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
 
-    if (role === "user" && req.user.customer_id && id !== req.user.customer_id) {
+    if ((role === "user" || role === "klient") && req.user.customer_id && id !== req.user.customer_id) {
       return res.status(403).json({ success: false, message: "Brak uprawnień" });
     }
 

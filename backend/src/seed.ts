@@ -1,144 +1,199 @@
-﻿import bcrypt from "bcrypt";
+import bcrypt from "bcrypt";
 import { run, get, all } from "./db.js";
 import { initDb } from "./dbInit.js";
 
 type IdRow = { id: number };
 
 async function main() {
-  console.log("🌱 Seeding database (50 per table)...");
+  console.log("🌱 Rebuilding database with optimized seed...");
   await initDb();
 
-
+  // ===== CLEAN ALL TABLES =====
   await run(`DELETE FROM messages`);
   await run(`DELETE FROM message_threads`);
   await run(`DELETE FROM notifications`);
   await run(`DELETE FROM invoices`);
   await run(`DELETE FROM appointments`);
   await run(`DELETE FROM orders`);
+  await run(`DELETE FROM ratings`);
+  await run(`DELETE FROM vehicle_history`);
   await run(`DELETE FROM vehicles`);
   await run(`DELETE FROM customers`);
   await run(`DELETE FROM users`);
+  await run(`DELETE FROM employee_schedule`);
+  await run(`DELETE FROM parts`);
+  await run(`DELETE FROM part_categories`);
+  await run(`DELETE FROM service_prices`);
+  await run(`DELETE FROM suppliers`);
+  await run(`DELETE FROM analytics`);
+  await run(`DELETE FROM email_templates`);
 
-
-  const users = [
-    { imie: "Admin", nazwisko: "Serwis", mail: "admin@example.com", telefon: "500000001", rola: "admin", haslo: "admin123" }
+  // ===== 1. CREATE CUSTOMERS (50) =====
+  console.log("📋 Creating 50 customers...");
+  const customerNames = [
+    "Adam Nowak", "Marek Wiśniewski", "Katarzyna Lewandowska", "Piotr Zieliński", "Ewa Kamińska",
+    "Robert Górski", "Anna Kucharska", "Tomasz Marciniak", "Barbara Kowalczyk", "Stanisław Wójcik"
   ];
 
-
-  const firstNames = ["Jan", "Ala", "Kamil", "Ola", "Piotr", "Marek", "Katarzyna", "Ewa", "Tomasz", "Anna"];
-  const lastNames = ["Kowalski", "Nowak", "Wójcik", "Zielińska", "Lewandowski", "Wiśniewski", "Kamińska", "Kucharski", "Górski", "Mrówka"];
-
-  for (let i = 1; i <= 49; i++) {
-    const firstName = firstNames[i % firstNames.length];
-    const lastName = lastNames[i % lastNames.length];
-    users.push({
-      imie: `${firstName}${i}`,
-      nazwisko: lastName,
-      mail: `user${i}@example.com`,
-      telefon: `500000${String(i + 1).padStart(3, "0")}`,
-      rola: "user",
-      haslo: "pass123"
-    });
-  }
-
-
-  for (let i = 1; i <= 10; i++) {
-    users.push({
-      imie: `Mechanik${i}`,
-      nazwisko: "Nowak",
-      mail: `mechanic${i}@example.com`,
-      telefon: `600000${String(i).padStart(3, "0")}`,
-      rola: "mechanik",
-      haslo: "mech123"
-    });
-  }
-
-
-  for (let i = 1; i <= 10; i++) {
-    users.push({
-      imie: `Kierownik${i}`,
-      nazwisko: "Manager",
-      mail: `manager${i}@example.com`,
-      telefon: `610000${String(i).padStart(3, "0")}`,
-      rola: "kierownik",
-      haslo: "mgr123"
-    });
-  }
-
-
-  for (let i = 1; i <= 10; i++) {
-    users.push({
-      imie: `Recepcjonistka${i}`,
-      nazwisko: "Recepcja",
-      mail: `receptionist${i}@example.com`,
-      telefon: `620000${String(i).padStart(3, "0")}`,
-      rola: "recepcja",
-      haslo: "rec123"
-    });
-  }
-
-  for (const u of users) {
-    const hashed = await bcrypt.hash(u.haslo, 10);
-    await run(
-      `INSERT INTO users (imie, nazwisko, mail, telefon, rola, haslo)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [u.imie, u.nazwisko, u.mail, u.telefon, u.rola, hashed]
-    );
-  }
-  console.log(`✅ Users: ${users.length}`);
-
-  const admin = await get<IdRow>(`SELECT id FROM users WHERE mail = ?`, ["admin@example.com"]);
-  
-
-  const allMechanics = await all<IdRow>(`SELECT id FROM users WHERE rola IN ('mechanik', 'user') LIMIT 20`);
-  const mechanics = allMechanics.map(m => m.id);
-
-
-  const customerNames = ["Adam Nowak", "Marek Wiśniewski", "Katarzyna Lewandowska", "Piotr Zieliński", "Ewa Kamińska"];
-  const customerEmails = ["adam", "marek", "kasia", "piotr", "ewa"];
-  
   for (let i = 1; i <= 50; i++) {
-    const nameBase = customerNames[i % customerNames.length];
-    const emailBase = customerEmails[i % customerEmails.length];
-    const customer = {
-      name: `${nameBase} ${i}`,
-      email: `${emailBase}${i}@client.pl`,
-      phone: `600700${String(800 + i).padStart(3, "0")}`,
-      notes: `Klient nr ${i}`
-    };
+    const nameBase = customerNames[(i - 1) % customerNames.length];
     await run(
       `INSERT INTO customers (name, email, phone, notes)
        VALUES (?, ?, ?, ?)`,
-      [customer.name, customer.email, customer.phone, customer.notes]
+      [
+        `${nameBase} ${i}`,
+        `customer${i}@client.pl`,
+        `600700${String(800 + i).padStart(3, "0")}`,
+        `Klient nr ${i}`
+      ]
     );
   }
-  console.log("✅ Customers: 50");
-
-
   const allCustomers = await all<IdRow>(`SELECT id FROM customers ORDER BY id ASC`);
-  
+  console.log("✅ Customers: 50 created");
 
-  const userRows = await all<IdRow>(`SELECT id FROM users WHERE rola = 'user' ORDER BY id ASC`);
+  // ===== 2. CREATE USERS (76 total) =====
+  console.log("👤 Creating users...");
   
-  for (let i = 0; i < userRows.length && i < allCustomers.length; i++) {
-    await run(`UPDATE users SET customer_id = ? WHERE id = ?`, [allCustomers[i].id, userRows[i].id]);
+  // Admin user
+  const adminHash = "4429f702260179f0611a1a0ae9d2b65869418962d5f8b0b14b9f13249dc91cb6"; // @Admin123
+  await run(
+    `INSERT INTO users (imie, nazwisko, mail, telefon, rola, haslo, customer_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ["Admin", "Serwis", "admin@example.com", "500000001", "admin", await bcrypt.hash(adminHash, 10), null]
+  );
+
+  const admin = await get<IdRow>(`SELECT id FROM users WHERE mail = ?`, ["admin@example.com"]);
+
+  // 40 Regular users (mapped to customers 1-40)
+  const userHash = "d3dec3f35387156495cbc21471313f87155f878f3435b693f50077c2be479033"; // Pass1234
+  const bcryptUserHash = await bcrypt.hash(userHash, 10);
+  
+  const firstNames = ["Jan", "Ala", "Kamil", "Ola", "Piotr", "Marek", "Katarzyna", "Ewa", "Tomasz", "Anna"];
+  const lastNames = ["Kowalski", "Nowak", "Wójcik", "Zielińska", "Lewandowski", "Wiśniewski", "Kamińska", "Kucharski", "Górski", "Mrówka"];
+
+  for (let i = 1; i <= 40; i++) {
+    const firstName = firstNames[(i - 1) % firstNames.length];
+    const lastName = lastNames[(i - 1) % lastNames.length];
+    await run(
+      `INSERT INTO users (imie, nazwisko, mail, telefon, rola, haslo, customer_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        `${firstName}${i}`,
+        lastName,
+        `user${i}@example.com`,
+        `500000${String(i).padStart(3, "0")}`,
+        "user",
+        bcryptUserHash,
+        allCustomers[i - 1].id  // Map to customer 1-40
+      ]
+    );
   }
-  console.log(`✅ Users assigned to customers (${Math.min(userRows.length, allCustomers.length)} mappings)`);
+  console.log("✅ Regular users: 40 created and mapped to customers 1-40");
 
+  // 10 Mechanics
+  const mechHash = "7c756054f305a9ecff1b8cae83f8ee0b03045ecf8854e342b57be0f101fa7137"; // Mech1234
+  const bcryptMechHash = await bcrypt.hash(mechHash, 10);
+  
+  for (let i = 1; i <= 10; i++) {
+    await run(
+      `INSERT INTO users (imie, nazwisko, mail, telefon, rola, haslo, customer_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        `Mechanik${i}`,
+        "Nowak",
+        `mechanic${i}@example.com`,
+        `600000${String(i).padStart(3, "0")}`,
+        "mechanik",
+        bcryptMechHash,
+        null
+      ]
+    );
+  }
+  console.log("✅ Mechanics: 10 created");
 
+  // 10 Managers
+  const mgrHash = "c39557b239d65f89a795be351873297c71300a162b1f4d2546ea3d9c29883736"; // Mgr12345
+  const bcryptMgrHash = await bcrypt.hash(mgrHash, 10);
+  
+  for (let i = 1; i <= 10; i++) {
+    await run(
+      `INSERT INTO users (imie, nazwisko, mail, telefon, rola, haslo, customer_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        `Kierownik${i}`,
+        "Manager",
+        `manager${i}@example.com`,
+        `610000${String(i).padStart(3, "0")}`,
+        "kierownik",
+        bcryptMgrHash,
+        null
+      ]
+    );
+  }
+  console.log("✅ Managers: 10 created");
+
+  // 5 Receptionists
+  const receptionistHash = "ad2c4ebed67b8760284f7ad42bfc2d2b97a65e9951233b929d61599bf687101e"; // Rec12345
+  const bcryptReceptionistHash = await bcrypt.hash(receptionistHash, 10);
+
+  for (let i = 1; i <= 5; i++) {
+    await run(
+      `INSERT INTO users (imie, nazwisko, mail, telefon, rola, haslo, customer_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        `Recepcja${i}`,
+        "Front",
+        `receptionist${i}@example.com`,
+        `615000${String(i).padStart(3, "0")}`,
+        "recepcja",
+        bcryptReceptionistHash,
+        null
+      ]
+    );
+  }
+  console.log("✅ Receptionists: 5 created");
+
+  // 10 Clients (mapped to customers 41-50)
+  const clientHash = "7667e9ec55bddbf87fdfb74fc3144dbbe6631f947556d863dece951aac93b0e6"; // Klient123
+  const bcryptClientHash = await bcrypt.hash(clientHash, 10);
+  
+  for (let i = 1; i <= 10; i++) {
+    await run(
+      `INSERT INTO users (imie, nazwisko, mail, telefon, rola, haslo, customer_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        `Klient${i}`,
+        "Serwisu",
+        `client${i}@example.com`,
+        `620000${String(i).padStart(3, "0")}`,
+        "klient",
+        bcryptClientHash,
+        allCustomers[39 + i].id  // Map to customer 41-50
+      ]
+    );
+  }
+  console.log("✅ Clients: 10 created and mapped to customers 41-50");
+
+  // Get all users
+  const allUsers = await all<IdRow>(`SELECT id FROM users ORDER BY id ASC`);
+  const allMechanics = await all<IdRow>(`SELECT id FROM users WHERE rola = 'mechanik' ORDER BY id ASC`);
+  const mechanicIds = allMechanics.map(m => m.id);
+
+  // ===== 3. CREATE VEHICLES (50) =====
+  console.log("🚗 Creating 50 vehicles...");
   const vehicleMakes = ["Toyota", "Volkswagen", "Ford", "BMW", "Audi", "Mercedes", "Honda", "Skoda", "Renault", "Peugeot"];
   const vehicleModels = ["Corolla", "Golf", "Transit", "3", "A4", "C-Class", "Civic", "Octavia", "Clio", "308"];
-  
+
   for (let i = 1; i <= 50; i++) {
-    const make = vehicleMakes[i % vehicleMakes.length];
-    const model = vehicleModels[i % vehicleModels.length];
-    const customer = allCustomers[i % allCustomers.length];
-    
+    const make = vehicleMakes[(i - 1) % vehicleMakes.length];
+    const model = vehicleModels[(i - 1) % vehicleModels.length];
+    const customerId = allCustomers[(i - 1) % allCustomers.length].id;
+
     await run(
       `INSERT INTO vehicles (customer_id, make, model, year, plate, vin)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [
-        customer.id,
+        customerId,
         make,
         model,
         2015 + (i % 10),
@@ -147,13 +202,13 @@ async function main() {
       ]
     );
   }
-  console.log("✅ Vehicles: 50");
-
   const allVehicles = await all<{ id: number; customer_id: number }>(
     `SELECT id, customer_id FROM vehicles ORDER BY id ASC`
   );
+  console.log("✅ Vehicles: 50 created");
 
-
+  // ===== 4. CREATE ORDERS (50) =====
+  console.log("📦 Creating 50 orders...");
   const orderServices = [
     "Wymiana oleju i filtrów",
     "Diagnostyka (check engine)",
@@ -167,12 +222,12 @@ async function main() {
   ];
   const statuses = ["nowe", "w_trakcie", "zakonczone"];
 
-  for (let i = 0; i < 50; i++) {
-    const vehicle = allVehicles[i % allVehicles.length];
-    const customer = allCustomers[i % allCustomers.length];
-    const service = orderServices[i % orderServices.length];
-    const status = statuses[i % statuses.length];
-    const mechanic = mechanics[i % mechanics.length];
+  for (let i = 1; i <= 50; i++) {
+    const vehicle = allVehicles[(i - 1) % allVehicles.length];
+    const service = orderServices[(i - 1) % orderServices.length];
+    const status = statuses[(i - 1) % statuses.length];
+    const mechanic = mechanicIds[(i - 1) % mechanicIds.length];
+    const day = ((i - 1) % 28) + 1;
 
     await run(
       `INSERT INTO orders
@@ -181,121 +236,92 @@ async function main() {
       [
         service,
         status,
-        `${service} - porządek nr ${i + 1}`,
-        customer.id,
+        `${service} - porządek nr ${i}`,
+        vehicle.customer_id,
         vehicle.id,
         mechanic,
         admin!.id,
-        `2025-12-${String((i % 30) + 1).padStart(2, "0")} ${String(9 + (i % 8)).padStart(2, "0")}:00`,
-        status === "zakonczone" ? `2025-12-${String((i % 30) + 1).padStart(2, "0")} ${String(10 + (i % 8)).padStart(2, "0")}:30` : null
+        `2025-12-${String(day).padStart(2, "0")} ${String(9 + ((i - 1) % 8)).padStart(2, "0")}:00`,
+        status === "zakonczone" ? `2025-12-${String(day).padStart(2, "0")} ${String(10 + ((i - 1) % 8)).padStart(2, "0")}:30` : null
       ]
     );
   }
-  console.log("✅ Orders: 50");
-
   const allOrders = await all<{ id: number; customer_id: number; vehicle_id: number }>(
     `SELECT id, customer_id, vehicle_id FROM orders ORDER BY id ASC`
   );
+  console.log("✅ Orders: 50 created");
 
+  // ===== 5. CREATE APPOINTMENTS (50) =====
+  console.log("📅 Creating 50 appointments...");
+  const appointmentStatuses = ["oczekujacy", "zaakceptowany", "wykonano"];
 
-  const appointmentStatuses = ["zaplanowana", "zakonczona", "anulowana"];
-
-  for (let i = 0; i < 50; i++) {
-    const order = allOrders[i % allOrders.length];
-    const status = appointmentStatuses[i % appointmentStatuses.length];
-    const day = (i % 28) + 1;
+  for (let i = 1; i <= 50; i++) {
+    const order = allOrders[(i - 1) % allOrders.length];
+    const status = appointmentStatuses[(i - 1) % appointmentStatuses.length];
+    const day = ((i - 1) % 28) + 1;
 
     await run(
       `INSERT INTO appointments (title, start_at, end_at, status, customer_id, vehicle_id, order_id, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        `Wizyta ${i + 1}: ${order.id}`,
-        `2025-12-${String(day).padStart(2, "0")} ${String(9 + (i % 8)).padStart(2, "0")}:00`,
-        `2025-12-${String(day).padStart(2, "0")} ${String(10 + (i % 8)).padStart(2, "0")}:30`,
+        `Wizyta ${i}`,
+        `2025-12-${String(day).padStart(2, "0")} ${String(9 + ((i - 1) % 8)).padStart(2, "0")}:00`,
+        `2025-12-${String(day).padStart(2, "0")} ${String(10 + ((i - 1) % 8)).padStart(2, "0")}:30`,
         status,
         order.customer_id,
         order.vehicle_id,
         order.id,
-        `Wizyta nr ${i + 1} - notatka`
+        `Wizyta nr ${i}`
       ]
     );
   }
-  console.log("✅ Appointments: 50");
+  console.log("✅ Appointments: 50 created");
 
-
-  const partNames = [
-    "Filtr oleju", "Olej silnikowy 5W30", "Klocki hamulcowe przód", "Tarcze hamulcowe przód",
-    "Akumulator 74Ah", "Świeca zapłonowa", "Filtr powietrza", "Filtr salonu", "Płyn chłodniczy",
-    "Pasek rozrządu", "Tarcza sprzęgła", "Komplet uszczelniacz", "Płyn hamulcowy"
-  ];
-  const brands = ["Bosch", "Castrol", "ATE", "Zimmermann", "Varta", "NGK", "Hengst", "Brembo"];
-
+  // ===== 6. CREATE INVOICES (50) =====
+  console.log("💰 Creating 50 invoices...");
   for (let i = 1; i <= 50; i++) {
-    const part = partNames[i % partNames.length];
-    const brand = brands[i % brands.length];
-    
-    await run(
-      `INSERT INTO parts (name, sku, brand, stock, min_stock, price, location)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        `${part} ${i}`,
-        `PART-${String(i).padStart(6, "0")}`,
-        brand,
-        Math.floor(Math.random() * 20),
-        2,
-        Math.round((50 + Math.random() * 450) * 100) / 100,
-        `Regał ${String.fromCharCode(65 + (i % 5))}${(i % 10) + 1}`
-      ]
-    );
-  }
-  console.log("✅ Parts: 50");
-
-
-  for (let i = 0; i < 50; i++) {
-    const order = allOrders[i % allOrders.length];
+    const order = allOrders[(i - 1) % allOrders.length];
     const invoiceStatuses = ["oczekuje", "zaplacona", "anulowana"];
-    const status = invoiceStatuses[i % invoiceStatuses.length];
-    const day = (i % 28) + 1;
+    const status = invoiceStatuses[(i - 1) % invoiceStatuses.length];
+    const day = ((i - 1) % 28) + 1;
 
     await run(
       `INSERT INTO invoices (number, customer_id, order_id, issue_date, due_date, amount, status, pdf_path)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        `FV/2025/${String(i + 1).padStart(3, "0")}`,
+        `FV/2025/${String(i).padStart(3, "0")}`,
         order.customer_id,
         order.id,
         `2025-12-${String(day).padStart(2, "0")}`,
-        `2025-12-${String((day + 13) % 28 + 1).padStart(2, "0")}`,
+        `2025-12-${String(((day + 13) % 28) + 1).padStart(2, "0")}`,
         Math.round((100 + Math.random() * 1500) * 100) / 100,
         status,
         null
       ]
     );
   }
-  console.log("✅ Invoices: 50");
+  console.log("✅ Invoices: 50 created");
 
+  // ===== 7. CREATE MESSAGE THREADS & MESSAGES =====
+  console.log("💬 Creating 50 message threads...");
+  for (let i = 1; i <= 50; i++) {
+    const order = allOrders[(i - 1) % allOrders.length];
 
-  for (let i = 0; i < 50; i++) {
-    const order = allOrders[i % allOrders.length];
-    const thread = {
-      title: `Konwersacja ${i + 1}: Order ${order.id}`,
-      customer_id: order.customer_id,
-      order_id: order.id,
-      created_by_user_id: admin!.id
-    };
-    
     await run(
       `INSERT INTO message_threads (title, customer_id, order_id, created_by_user_id, updated_at)
        VALUES (?, ?, ?, ?, datetime('now'))`,
-      [thread.title, thread.customer_id, thread.order_id, thread.created_by_user_id]
+      [
+        `Konwersacja ${i}: Order ${order.id}`,
+        order.customer_id,
+        order.id,
+        admin!.id
+      ]
     );
   }
-  console.log("✅ Threads: 50");
 
   const allThreads = await all<{ id: number }>(
     `SELECT id FROM message_threads ORDER BY id ASC`
   );
-
 
   const messageTexts = [
     "Dzień dobry, zaczynamy serwis.",
@@ -310,55 +336,54 @@ async function main() {
     "Faktura wysłana na maila."
   ];
 
-  for (let i = 0; i < 50; i++) {
-    const thread = allThreads[i % allThreads.length];
-    const mechanic = mechanics[i % mechanics.length];
-    const message = messageTexts[i % messageTexts.length];
+  for (let i = 1; i <= 50; i++) {
+    const thread = allThreads[(i - 1) % allThreads.length];
+    const mechanic = mechanicIds[(i - 1) % mechanicIds.length];
+    const message = messageTexts[(i - 1) % messageTexts.length];
 
     await run(
       `INSERT INTO messages (thread_id, sender_user_id, sender_customer_id, text)
        VALUES (?, ?, ?, ?)`,
-      [thread.id, mechanic, null, `${message} (msg ${i + 1})`]
+      [thread.id, mechanic, null, `${message} (msg ${i})`]
     );
-    
+
     await run(`UPDATE message_threads SET updated_at = datetime('now') WHERE id = ?`, [thread.id]);
   }
-  console.log("✅ Messages: 50");
+  console.log("✅ Message threads: 50, Messages: 50 created");
 
-
-  const notificationTitles = [
-    "Panel admin",
-    "Nowe zlecenie",
-    "Diagnostyka",
-    "Magazyn",
-    "Faktury",
-    "Wiadomość",
-    "Wizyta",
-    "Status"
+  // ===== 8. CREATE PARTS (50) =====
+  console.log("📦 Creating 50 parts...");
+  const partNames = [
+    "Filtr oleju", "Olej silnikowy 5W30", "Klocki hamulcowe przód", "Tarcze hamulcowe przód",
+    "Akumulator 74Ah", "Świeca zapłonowa", "Filtr powietrza", "Filtr salonu", "Płyn chłodniczy",
+    "Pasek rozrządu", "Tarcza sprzęgła", "Komplet uszczelniacz", "Płyn hamulcowy"
   ];
+  const brands = ["Bosch", "Castrol", "ATE", "Zimmermann", "Varta", "NGK", "Hengst", "Brembo"];
 
-  const notifUsers = await all<{ id: number }>(
-    `SELECT id FROM users ORDER BY id ASC LIMIT 50`
-  );
+  for (let i = 1; i <= 50; i++) {
+    const part = partNames[(i - 1) % partNames.length];
+    const brand = brands[(i - 1) % brands.length];
 
-  for (let i = 0; i < Math.min(50, notifUsers.length); i++) {
-    const title = notificationTitles[i % notificationTitles.length];
-    
     await run(
-      `INSERT INTO notifications (user_id, title, body)
-       VALUES (?, ?, ?)`,
+      `INSERT INTO parts (name, sku, brand, stock, min_stock, price, location)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
-        notifUsers[i].id,
-        title,
-        `Powiadomienie ${i + 1}: ${title} - nowa wiadomość do przeczytania.`
+        `${part} ${i}`,
+        `PART-${String(i).padStart(6, "0")}`,
+        brand,
+        Math.floor(Math.random() * 20),
+        2,
+        Math.round((50 + Math.random() * 450) * 100) / 100,
+        `Regał ${String.fromCharCode(65 + ((i - 1) % 5))}${((i - 1) % 10) + 1}`
       ]
     );
   }
-  console.log("✅ Notifications: 50");
+  console.log("✅ Parts: 50 created");
 
-
+  // ===== 9. CREATE PART CATEGORIES =====
+  console.log("📂 Creating part categories...");
   const categories = [
-    "Hamulce", "Filtry", "Oleje", "Zawieszenie", "Silnik", 
+    "Hamulce", "Filtry", "Oleje", "Zawieszenie", "Silnik",
     "Klimatyzacja", "Elektryka", "Oświetlenie", "Paliwo", "Inne"
   ];
 
@@ -369,11 +394,10 @@ async function main() {
       [cat, `Kategoria części: ${cat}`]
     );
   }
-  console.log("✅ Part Categories: 10");
+  console.log("✅ Part categories: 10 created");
 
-  const allCategories = await all<IdRow>(`SELECT id FROM part_categories ORDER BY id ASC`);
-
-
+  // ===== 10. CREATE SERVICE PRICES =====
+  console.log("💵 Creating service prices...");
   const services = [
     { name: "Wymiana oleju", price: 150, hours: 1 },
     { name: "Diagnostyka", price: 80, hours: 1 },
@@ -394,54 +418,10 @@ async function main() {
       [svc.name, `Usługa: ${svc.name}`, svc.price, svc.hours, 1]
     );
   }
-  console.log("✅ Service Prices: 10");
+  console.log("✅ Service prices: 10 created");
 
-
-  for (let i = 0; i < 50; i++) {
-    const vehicle = allVehicles[i % allVehicles.length];
-    const mechanic = mechanics[i % mechanics.length];
-    const day = (i % 28) + 1;
-
-    await run(
-      `INSERT INTO vehicle_history (vehicle_id, service_type, description, date_performed, mechanic_user_id, cost, parts_used, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        vehicle.id,
-        services[i % services.length].name,
-        `Historia serwisu nr ${i + 1}`,
-        `2025-12-${String(day).padStart(2, "0")}`,
-        mechanic,
-        Math.round((80 + Math.random() * 500) * 100) / 100,
-        `Część ${i + 1}`,
-        `Notatka serwisowa nr ${i + 1}`
-      ]
-    );
-  }
-  console.log("✅ Vehicle History: 50");
-
-
-  const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
-
-  for (let i = 0; i < 50; i++) {
-    const user = userRows[i % userRows.length];
-    const day = daysOfWeek[i % daysOfWeek.length];
-    const isAvailable = i % 7 !== 6 ? 1 : 0; // Niedziela niedostępna
-
-    await run(
-      `INSERT INTO employee_schedule (user_id, day_of_week, start_time, end_time, is_available)
-       VALUES (?, ?, ?, ?, ?)`,
-      [
-        user.id,
-        day,
-        `${String(8 + (i % 4)).padStart(2, "0")}:00`,
-        `${String(16 + (i % 4)).padStart(2, "0")}:00`,
-        isAvailable
-      ]
-    );
-  }
-  console.log("✅ Employee Schedule: 50");
-
-
+  // ===== 11. CREATE SUPPLIERS =====
+  console.log("🏭 Creating suppliers...");
   const supplierNames = [
     "Auto Parts Sp. z o.o.", "Części Samochodowe Plus", "Serwis Import",
     "SupplyCar Polska", "Mechanic Store", "Auto Express", "Parts World",
@@ -449,9 +429,10 @@ async function main() {
     "Logistics Auto", "Quality Spares", "Direct Parts Supply", "Wholesale Motors", "Trade Auto Parts"
   ];
 
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < supplierNames.length; i++) {
     const supplier = supplierNames[i];
-    
+    const cities = ["Warszawa", "Kraków", "Poznań", "Wrocław", "Gdańsk"];
+
     await run(
       `INSERT INTO suppliers (name, contact_person, email, phone, address, city, postal_code, payment_terms, rating, is_active)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -461,7 +442,7 @@ async function main() {
         `contact${i + 1}@supplier.com`,
         `+48${String(600000000 + i * 1000000).padStart(9, "0")}`,
         `Ulica ${i + 1}`,
-        ["Warszawa", "Kraków", "Poznań", "Wrocław", "Gdańsk"][i % 5],
+        cities[i % cities.length],
         `${String(30000 + i * 100).padStart(5, "0")}`,
         "30 dni",
         Math.round((3 + Math.random() * 2) * 10) / 10,
@@ -469,13 +450,38 @@ async function main() {
       ]
     );
   }
-  console.log("✅ Suppliers: 15");
+  console.log("✅ Suppliers: 15 created");
 
+  // ===== 12. CREATE VEHICLE HISTORY =====
+  console.log("📜 Creating vehicle history...");
+  for (let i = 1; i <= 50; i++) {
+    const vehicle = allVehicles[(i - 1) % allVehicles.length];
+    const mechanic = mechanicIds[(i - 1) % mechanicIds.length];
+    const day = ((i - 1) % 28) + 1;
 
-  for (let i = 0; i < 50; i++) {
-    const customer = allCustomers[i % allCustomers.length];
-    const mechanic = mechanics[i % mechanics.length];
-    const order = allOrders[i % allOrders.length];
+    await run(
+      `INSERT INTO vehicle_history (vehicle_id, service_type, description, date_performed, mechanic_user_id, cost, parts_used, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        vehicle.id,
+        services[(i - 1) % services.length].name,
+        `Historia serwisu nr ${i}`,
+        `2025-12-${String(day).padStart(2, "0")}`,
+        mechanic,
+        Math.round((80 + Math.random() * 500) * 100) / 100,
+        `Część ${i}`,
+        `Notatka serwisowa nr ${i}`
+      ]
+    );
+  }
+  console.log("✅ Vehicle history: 50 created");
+
+  // ===== 13. CREATE RATINGS =====
+  console.log("⭐ Creating ratings...");
+  for (let i = 1; i <= 50; i++) {
+    const customer = allCustomers[(i - 1) % allCustomers.length];
+    const mechanic = mechanicIds[(i - 1) % mechanicIds.length];
+    const order = allOrders[(i - 1) % allOrders.length];
 
     await run(
       `INSERT INTO ratings (customer_id, mechanic_user_id, order_id, rating_score, comment, is_anonymous)
@@ -484,15 +490,62 @@ async function main() {
         customer.id,
         mechanic,
         order.id,
-        Math.floor(3 + Math.random() * 3), // 3-5 gwiazdek
-        `Opinia klienta nr ${i + 1}: Dobra robota, profesjonalny serwis`,
-        i % 10 === 0 ? 1 : 0
+        Math.floor(3 + Math.random() * 3),
+        `Opinia klienta nr ${i}: Dobra robota, profesjonalny serwis`,
+        (i % 10) === 0 ? 1 : 0
       ]
     );
   }
-  console.log("✅ Ratings: 50");
+  console.log("✅ Ratings: 50 created");
 
+  // ===== 14. CREATE EMPLOYEE SCHEDULE =====
+  console.log("📅 Creating employee schedule...");
+  const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
+  const regularUsers = await all<IdRow>(`SELECT id FROM users WHERE rola = 'user' ORDER BY id ASC`);
 
+  for (let i = 1; i <= Math.min(50, regularUsers.length); i++) {
+    const user = regularUsers[(i - 1) % regularUsers.length];
+    const day = daysOfWeek[(i - 1) % daysOfWeek.length];
+    const isAvailable = ((i - 1) % 7) !== 6 ? 1 : 0;
+
+    await run(
+      `INSERT INTO employee_schedule (user_id, day_of_week, start_time, end_time, is_available)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        user.id,
+        day,
+        `${String(8 + ((i - 1) % 4)).padStart(2, "0")}:00`,
+        `${String(16 + ((i - 1) % 4)).padStart(2, "0")}:00`,
+        isAvailable
+      ]
+    );
+  }
+  console.log("✅ Employee schedule: 50 created");
+
+  // ===== 15. CREATE NOTIFICATIONS =====
+  console.log("🔔 Creating notifications...");
+  const notificationTitles = [
+    "Panel admin", "Nowe zlecenie", "Diagnostyka", "Magazyn",
+    "Faktury", "Wiadomość", "Wizyta", "Status"
+  ];
+
+  for (let i = 0; i < Math.min(50, allUsers.length); i++) {
+    const title = notificationTitles[i % notificationTitles.length];
+
+    await run(
+      `INSERT INTO notifications (user_id, title, body)
+       VALUES (?, ?, ?)`,
+      [
+        allUsers[i].id,
+        title,
+        `Powiadomienie ${i + 1}: ${title} - nowa wiadomość do przeczytania.`
+      ]
+    );
+  }
+  console.log("✅ Notifications: 50 created");
+
+  // ===== 16. CREATE EMAIL TEMPLATES =====
+  console.log("📧 Creating email templates...");
   const emailTemplates = [
     {
       name: "Potwierdzenie rezerwacji",
@@ -539,12 +592,13 @@ async function main() {
       [tpl.name, tpl.subject, tpl.body, tpl.type, 1]
     );
   }
-  console.log("✅ Email Templates: 6");
+  console.log("✅ Email templates: 6 created");
 
-
-  for (let i = 0; i < 30; i++) {
-    const day = (i % 28) + 1;
-    const topMechanic = mechanics[i % mechanics.length];
+  // ===== 17. CREATE ANALYTICS =====
+  console.log("📊 Creating analytics...");
+  for (let i = 1; i <= 30; i++) {
+    const day = i;
+    const topMechanic = mechanicIds[(i - 1) % mechanicIds.length];
 
     await run(
       `INSERT INTO analytics (date, total_revenue, total_orders, total_appointments, completed_orders, average_rating, top_service, top_mechanic_id, new_customers)
@@ -556,19 +610,45 @@ async function main() {
         Math.floor(5 + Math.random() * 10),
         Math.floor(8 + Math.random() * 10),
         Math.round((4 + Math.random() * 1) * 10) / 10,
-        services[i % services.length].name,
+        services[(i - 1) % services.length].name,
         topMechanic,
         Math.floor(Math.random() * 5)
       ]
     );
   }
-  console.log("✅ Analytics: 30");
+  console.log("✅ Analytics: 30 created");
 
-  console.log("✨ Database seeded successfully (50 per table)!");
+  // ===== SUMMARY =====
+  console.log("\n" + "=".repeat(60));
+  console.log("✨ DATABASE SEEDED SUCCESSFULLY!");
+  console.log("=".repeat(60));
+  console.log("\n📝 Test Credentials:");
+  console.log("  Admin:     admin@example.com / @Admin123");
+  console.log("  User 1-40: user{i}@example.com / Pass1234");
+  console.log("  Mechanic:  mechanic{i}@example.com / Mech1234");
+  console.log("  Manager:   manager{i}@example.com / Mgr12345");
+  console.log("  Reception: receptionist{i}@example.com / Rec12345");
+  console.log("  Client 1-10: client{i}@example.com / Klient123");
+  console.log("\n👥 Data Structure:");
+  console.log("  • 50 Customers");
+  console.log("  • 1 Admin + 40 Regular Users + 10 Mechanics + 10 Managers + 5 Receptionists + 10 Clients = 76 Users");
+  console.log("  • 50 Vehicles (distributed across 50 customers)");
+  console.log("  • 50 Orders (linked to vehicles & customers)");
+  console.log("  • 50 Appointments");
+  console.log("  • 50 Invoices");
+  console.log("  • 50 Message threads with messages");
+  console.log("  • 50 Parts + 10 Categories");
+  console.log("  • 15 Suppliers");
+  console.log("  • 50 Vehicle History records");
+  console.log("  • 50 Ratings");
+  console.log("  • 50 Employee Schedules");
+  console.log("  • 50 Notifications");
+  console.log("  • 6 Email Templates");
+  console.log("  • 30 Analytics records");
+  console.log("=".repeat(60) + "\n");
 }
 
 main().catch((e) => {
   console.error("❌ Seed failed:", e);
   process.exit(1);
 });
-

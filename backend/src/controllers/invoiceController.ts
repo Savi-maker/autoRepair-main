@@ -10,34 +10,37 @@ export async function listInvoices(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
     const role = normalizeRole(req.user.rola);
-    const canView = role === "admin" || role === "kierownik" || role === "recepcja";
+    const canView = role === "admin" || role === "kierownik" || role === "recepcja" || role === "user" || role === "klient";
     if (!canView) return res.status(403).json({ success: false, message: "Brak uprawnień" });
 
     const q = String((req.query.q ?? "") as string).trim();
+    const isCustomer = (role === "user" || role === "klient") && req.user.customer_id;
 
-    const rows = q
-      ? await all(
-          `SELECT
-            i.id, i.number, i.customer_id, i.order_id, i.issue_date, i.due_date, i.amount, i.status, i.pdf_path, i.created_at,
-            c.name AS customer_name,
-            o.service AS order_service
-          FROM invoices i
-          LEFT JOIN customers c ON c.id = i.customer_id
-          LEFT JOIN orders o ON o.id = i.order_id
-          WHERE i.number LIKE ? OR c.name LIKE ?
-          ORDER BY i.id DESC`,
-          [`%${q}%`, `%${q}%`]
-        )
-      : await all(
-          `SELECT
-            i.id, i.number, i.customer_id, i.order_id, i.issue_date, i.due_date, i.amount, i.status, i.pdf_path, i.created_at,
-            c.name AS customer_name,
-            o.service AS order_service
-          FROM invoices i
-          LEFT JOIN customers c ON c.id = i.customer_id
-          LEFT JOIN orders o ON o.id = i.order_id
-          ORDER BY i.id DESC`
-        );
+    let baseQuery = `SELECT
+      i.id, i.number, i.customer_id, i.order_id, i.issue_date, i.due_date, i.amount, i.status, i.pdf_path, i.created_at,
+      c.name AS customer_name,
+      o.service AS order_service
+    FROM invoices i
+    LEFT JOIN customers c ON c.id = i.customer_id
+    LEFT JOIN orders o ON o.id = i.order_id`;
+
+    let whereConditions: string[] = [];
+    let params: any[] = [];
+
+    if (isCustomer) {
+      whereConditions.push(`i.customer_id = ?`);
+      params.push(req.user.customer_id);
+    }
+
+    if (q) {
+      whereConditions.push(`(i.number LIKE ? OR c.name LIKE ?)`);
+      params.push(`%${q}%`, `%${q}%`);
+    }
+
+    const whereClause = whereConditions.length > 0 ? ` WHERE ${whereConditions.join(" AND ")}` : "";
+    const query = baseQuery + whereClause + ` ORDER BY i.id DESC`;
+
+    const rows = await all(query, params);
 
     return res.json({ success: true, message: "OK", data: rows });
   } catch (e: any) {
@@ -50,7 +53,7 @@ export async function getInvoiceById(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ error: "Brak autoryzacji" });
 
     const role = normalizeRole(req.user.rola);
-    const canView = role === "admin" || role === "kierownik" || role === "recepcja";
+    const canView = role === "admin" || role === "kierownik" || role === "recepcja" || role === "user" || role === "klient";
     if (!canView) return res.status(403).json({ success: false, message: "Brak uprawnień" });
 
     const id = Number(req.params.id);

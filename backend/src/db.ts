@@ -1,10 +1,13 @@
 import sqlite3 from "sqlite3";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 
 sqlite3.verbose();
 
-const DATA_DIR = path.join(process.cwd(), "data");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DATA_DIR = path.join(__dirname, "..", "data");
 const DB_PATH = path.join(DATA_DIR, "mydb.sqlite3");
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });

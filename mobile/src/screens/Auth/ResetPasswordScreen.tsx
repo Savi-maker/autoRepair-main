@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { resetPassword } from '../../utils/api'
+import { hashPassword, validateEmail, validatePasswordStrength } from '../../utils/helpers'
 import './Auth.css'
 
 const ResetPasswordScreen: React.FC = () => {
@@ -12,11 +13,6 @@ const ResetPasswordScreen: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return emailRegex.test(email)
-  }
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,8 +32,9 @@ const ResetPasswordScreen: React.FC = () => {
       return
     }
 
-    if (newPassword.length < 6) {
-      setError('Hasło musi mieć minimum 6 znaków')
+    const passwordValidation = validatePasswordStrength(newPassword)
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.message)
       return
     }
 
@@ -48,7 +45,8 @@ const ResetPasswordScreen: React.FC = () => {
 
     setLoading(true)
     try {
-      const resp = await resetPassword({ mail, imie: first, nowe_haslo: newPassword })
+      const hashedPassword = await hashPassword(newPassword)
+      const resp = await resetPassword({ mail, imie: first, nowe_haslo: hashedPassword })
       if (resp.success) {
         setSuccess('Hasło zostało zmienione pomyślnie!')
         setTimeout(() => navigate('/login'), 900)
