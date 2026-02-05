@@ -125,12 +125,11 @@ export default function Messages() {
 
   const filteredThreads = useMemo(() => {
     let filtered = threads
-    
-    // Filter by customer if user is 'klient' or 'user'
+
     if (user && (user.rola === 'klient' || user.rola === 'user') && user.customer_id) {
       filtered = filtered.filter((t) => t.customer_id === user.customer_id)
     }
-    
+
     return filtered
   }, [threads, user])
 

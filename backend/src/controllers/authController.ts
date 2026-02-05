@@ -72,14 +72,20 @@ export async function register(req: Request, res: Response) {
     return res.status(409).json({ success: false, message: "Użytkownik o takim mailu już istnieje" });
   }
 
+  const customerRes = await run(
+    `INSERT INTO customers (name, email, phone, notes) VALUES (?, ?, ?, ?)`
+    ,
+    [`${sanitizedImie} ${sanitizedNazwisko}`.trim(), sanitizedMail, telefon ?? null, null]
+  );
+
   const doubleHashed = await bcrypt.hash(String(haslo), 10);
 
   const result = await run(
-    `INSERT INTO users (imie, nazwisko, mail, telefon, rola, haslo) VALUES (?, ?, ?, ?, 'user', ?)`,
-    [sanitizedImie, sanitizedNazwisko, sanitizedMail, telefon ?? null, doubleHashed]
+    `INSERT INTO users (imie, nazwisko, mail, telefon, rola, haslo, customer_id) VALUES (?, ?, ?, ?, 'klient', ?, ?)`,
+    [sanitizedImie, sanitizedNazwisko, sanitizedMail, telefon ?? null, doubleHashed, customerRes.lastID]
   );
 
-  const user = { id: result.lastID, mail: sanitizedMail, rola: "user" };
+  const user = { id: result.lastID, mail: sanitizedMail, rola: "klient", customer_id: customerRes.lastID };
   const token = signToken(user);
 
   return res.status(201).json({

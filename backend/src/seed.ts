@@ -8,7 +8,6 @@ async function main() {
   console.log("🌱 Rebuilding database with optimized seed...");
   await initDb();
 
-  // ===== CLEAN ALL TABLES =====
   await run(`DELETE FROM messages`);
   await run(`DELETE FROM message_threads`);
   await run(`DELETE FROM notifications`);
@@ -28,7 +27,6 @@ async function main() {
   await run(`DELETE FROM analytics`);
   await run(`DELETE FROM email_templates`);
 
-  // ===== 1. CREATE CUSTOMERS (50) =====
   console.log("📋 Creating 50 customers...");
   const customerNames = [
     "Adam Nowak", "Marek Wiśniewski", "Katarzyna Lewandowska", "Piotr Zieliński", "Ewa Kamińska",
@@ -51,11 +49,9 @@ async function main() {
   const allCustomers = await all<IdRow>(`SELECT id FROM customers ORDER BY id ASC`);
   console.log("✅ Customers: 50 created");
 
-  // ===== 2. CREATE USERS (76 total) =====
   console.log("👤 Creating users...");
-  
-  // Admin user
-  const adminHash = "4429f702260179f0611a1a0ae9d2b65869418962d5f8b0b14b9f13249dc91cb6"; // @Admin123
+
+  const adminHash = "4429f702260179f0611a1a0ae9d2b65869418962d5f8b0b14b9f13249dc91cb6";
   await run(
     `INSERT INTO users (imie, nazwisko, mail, telefon, rola, haslo, customer_id)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -64,8 +60,7 @@ async function main() {
 
   const admin = await get<IdRow>(`SELECT id FROM users WHERE mail = ?`, ["admin@example.com"]);
 
-  // 40 Regular users (mapped to customers 1-40)
-  const userHash = "d3dec3f35387156495cbc21471313f87155f878f3435b693f50077c2be479033"; // Pass1234
+  const userHash = "d3dec3f35387156495cbc21471313f87155f878f3435b693f50077c2be479033";
   const bcryptUserHash = await bcrypt.hash(userHash, 10);
   
   const firstNames = ["Jan", "Ala", "Kamil", "Ola", "Piotr", "Marek", "Katarzyna", "Ewa", "Tomasz", "Anna"];
@@ -84,14 +79,13 @@ async function main() {
         `500000${String(i).padStart(3, "0")}`,
         "user",
         bcryptUserHash,
-        allCustomers[i - 1].id  // Map to customer 1-40
+        allCustomers[i - 1].id
       ]
     );
   }
   console.log("✅ Regular users: 40 created and mapped to customers 1-40");
 
-  // 10 Mechanics
-  const mechHash = "7c756054f305a9ecff1b8cae83f8ee0b03045ecf8854e342b57be0f101fa7137"; // Mech1234
+  const mechHash = "7c756054f305a9ecff1b8cae83f8ee0b03045ecf8854e342b57be0f101fa7137";
   const bcryptMechHash = await bcrypt.hash(mechHash, 10);
   
   for (let i = 1; i <= 10; i++) {
@@ -111,8 +105,7 @@ async function main() {
   }
   console.log("✅ Mechanics: 10 created");
 
-  // 10 Managers
-  const mgrHash = "c39557b239d65f89a795be351873297c71300a162b1f4d2546ea3d9c29883736"; // Mgr12345
+  const mgrHash = "c39557b239d65f89a795be351873297c71300a162b1f4d2546ea3d9c29883736";
   const bcryptMgrHash = await bcrypt.hash(mgrHash, 10);
   
   for (let i = 1; i <= 10; i++) {
@@ -132,8 +125,7 @@ async function main() {
   }
   console.log("✅ Managers: 10 created");
 
-  // 5 Receptionists
-  const receptionistHash = "ad2c4ebed67b8760284f7ad42bfc2d2b97a65e9951233b929d61599bf687101e"; // Rec12345
+  const receptionistHash = "ad2c4ebed67b8760284f7ad42bfc2d2b97a65e9951233b929d61599bf687101e";
   const bcryptReceptionistHash = await bcrypt.hash(receptionistHash, 10);
 
   for (let i = 1; i <= 5; i++) {
@@ -153,8 +145,7 @@ async function main() {
   }
   console.log("✅ Receptionists: 5 created");
 
-  // 10 Clients (mapped to customers 41-50)
-  const clientHash = "7667e9ec55bddbf87fdfb74fc3144dbbe6631f947556d863dece951aac93b0e6"; // Klient123
+  const clientHash = "7667e9ec55bddbf87fdfb74fc3144dbbe6631f947556d863dece951aac93b0e6";
   const bcryptClientHash = await bcrypt.hash(clientHash, 10);
   
   for (let i = 1; i <= 10; i++) {
@@ -168,18 +159,16 @@ async function main() {
         `620000${String(i).padStart(3, "0")}`,
         "klient",
         bcryptClientHash,
-        allCustomers[39 + i].id  // Map to customer 41-50
+        allCustomers[39 + i].id
       ]
     );
   }
   console.log("✅ Clients: 10 created and mapped to customers 41-50");
 
-  // Get all users
   const allUsers = await all<IdRow>(`SELECT id FROM users ORDER BY id ASC`);
   const allMechanics = await all<IdRow>(`SELECT id FROM users WHERE rola = 'mechanik' ORDER BY id ASC`);
   const mechanicIds = allMechanics.map(m => m.id);
 
-  // ===== 3. CREATE VEHICLES (50) =====
   console.log("🚗 Creating 50 vehicles...");
   const vehicleMakes = ["Toyota", "Volkswagen", "Ford", "BMW", "Audi", "Mercedes", "Honda", "Skoda", "Renault", "Peugeot"];
   const vehicleModels = ["Corolla", "Golf", "Transit", "3", "A4", "C-Class", "Civic", "Octavia", "Clio", "308"];
@@ -207,7 +196,6 @@ async function main() {
   );
   console.log("✅ Vehicles: 50 created");
 
-  // ===== 4. CREATE ORDERS (50) =====
   console.log("📦 Creating 50 orders...");
   const orderServices = [
     "Wymiana oleju i filtrów",
@@ -250,8 +238,6 @@ async function main() {
     `SELECT id, customer_id, vehicle_id FROM orders ORDER BY id ASC`
   );
   console.log("✅ Orders: 50 created");
-
-  // ===== 5. CREATE APPOINTMENTS (50) =====
   console.log("📅 Creating 50 appointments...");
   const appointmentStatuses = ["oczekujacy", "zaakceptowany", "wykonano"];
 
@@ -276,8 +262,6 @@ async function main() {
     );
   }
   console.log("✅ Appointments: 50 created");
-
-  // ===== 6. CREATE INVOICES (50) =====
   console.log("💰 Creating 50 invoices...");
   for (let i = 1; i <= 50; i++) {
     const order = allOrders[(i - 1) % allOrders.length];
@@ -301,8 +285,6 @@ async function main() {
     );
   }
   console.log("✅ Invoices: 50 created");
-
-  // ===== 7. CREATE MESSAGE THREADS & MESSAGES =====
   console.log("💬 Creating 50 message threads...");
   for (let i = 1; i <= 50; i++) {
     const order = allOrders[(i - 1) % allOrders.length];
@@ -350,8 +332,6 @@ async function main() {
     await run(`UPDATE message_threads SET updated_at = datetime('now') WHERE id = ?`, [thread.id]);
   }
   console.log("✅ Message threads: 50, Messages: 50 created");
-
-  // ===== 8. CREATE PARTS (50) =====
   console.log("📦 Creating 50 parts...");
   const partNames = [
     "Filtr oleju", "Olej silnikowy 5W30", "Klocki hamulcowe przód", "Tarcze hamulcowe przód",
@@ -379,8 +359,6 @@ async function main() {
     );
   }
   console.log("✅ Parts: 50 created");
-
-  // ===== 9. CREATE PART CATEGORIES =====
   console.log("📂 Creating part categories...");
   const categories = [
     "Hamulce", "Filtry", "Oleje", "Zawieszenie", "Silnik",
@@ -395,8 +373,6 @@ async function main() {
     );
   }
   console.log("✅ Part categories: 10 created");
-
-  // ===== 10. CREATE SERVICE PRICES =====
   console.log("💵 Creating service prices...");
   const services = [
     { name: "Wymiana oleju", price: 150, hours: 1 },
@@ -419,8 +395,6 @@ async function main() {
     );
   }
   console.log("✅ Service prices: 10 created");
-
-  // ===== 11. CREATE SUPPLIERS =====
   console.log("🏭 Creating suppliers...");
   const supplierNames = [
     "Auto Parts Sp. z o.o.", "Części Samochodowe Plus", "Serwis Import",
@@ -451,8 +425,6 @@ async function main() {
     );
   }
   console.log("✅ Suppliers: 15 created");
-
-  // ===== 12. CREATE VEHICLE HISTORY =====
   console.log("📜 Creating vehicle history...");
   for (let i = 1; i <= 50; i++) {
     const vehicle = allVehicles[(i - 1) % allVehicles.length];
@@ -475,8 +447,6 @@ async function main() {
     );
   }
   console.log("✅ Vehicle history: 50 created");
-
-  // ===== 13. CREATE RATINGS =====
   console.log("⭐ Creating ratings...");
   for (let i = 1; i <= 50; i++) {
     const customer = allCustomers[(i - 1) % allCustomers.length];
@@ -497,8 +467,6 @@ async function main() {
     );
   }
   console.log("✅ Ratings: 50 created");
-
-  // ===== 14. CREATE EMPLOYEE SCHEDULE =====
   console.log("📅 Creating employee schedule...");
   const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
   const regularUsers = await all<IdRow>(`SELECT id FROM users WHERE rola = 'user' ORDER BY id ASC`);
@@ -521,8 +489,6 @@ async function main() {
     );
   }
   console.log("✅ Employee schedule: 50 created");
-
-  // ===== 15. CREATE NOTIFICATIONS =====
   console.log("🔔 Creating notifications...");
   const notificationTitles = [
     "Panel admin", "Nowe zlecenie", "Diagnostyka", "Magazyn",
@@ -543,8 +509,6 @@ async function main() {
     );
   }
   console.log("✅ Notifications: 50 created");
-
-  // ===== 16. CREATE EMAIL TEMPLATES =====
   console.log("📧 Creating email templates...");
   const emailTemplates = [
     {
@@ -593,8 +557,6 @@ async function main() {
     );
   }
   console.log("✅ Email templates: 6 created");
-
-  // ===== 17. CREATE ANALYTICS =====
   console.log("📊 Creating analytics...");
   for (let i = 1; i <= 30; i++) {
     const day = i;
@@ -617,8 +579,6 @@ async function main() {
     );
   }
   console.log("✅ Analytics: 30 created");
-
-  // ===== SUMMARY =====
   console.log("\n" + "=".repeat(60));
   console.log("✨ DATABASE SEEDED SUCCESSFULLY!");
   console.log("=".repeat(60));

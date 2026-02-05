@@ -21,8 +21,16 @@ export async function listVehicles(req: AuthRequest, res: Response) {
     if (!isViewer) return res.status(403).json({ success: false, message: "Brak uprawnień" });
 
     const q = String((req.query.q ?? "") as string).trim();
-    const isCustomer = req.user.rola === "user" || req.user.rola === "klient";
-    const customerId = req.user.customer_id;
+    const isCustomer = role === "user" || role === "klient";
+    let customerId = req.user.customer_id;
+
+    if (isCustomer && !customerId) {
+      const row = await get<{ customer_id: number | null }>(
+        `SELECT customer_id FROM users WHERE id = ?`,
+        [req.user.id]
+      );
+      customerId = row?.customer_id ?? undefined;
+    }
 
     let query = `SELECT
       v.id, v.customer_id, v.make, v.model, v.year, v.plate, v.vin, v.last_service_at, v.created_at,
@@ -31,6 +39,10 @@ export async function listVehicles(req: AuthRequest, res: Response) {
      LEFT JOIN customers c ON c.id = v.customer_id`;
 
     let params: any[] = [];
+
+    if (isCustomer && !customerId) {
+      return res.json({ success: true, message: "OK", data: [], pagination: { page, limit, total: 0, totalPages: 0 } });
+    }
 
     if (isCustomer && customerId) {
       query += ` WHERE v.customer_id = ?`;
@@ -101,8 +113,18 @@ export async function getVehicleById(req: AuthRequest, res: Response) {
 
     if (!row) return res.status(404).json({ success: false, message: "Vehicle not found" });
 
-    if ((role === "user" || role === "klient") && req.user.customer_id && row?.customer_id !== req.user.customer_id) {
-      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    if (role === "user" || role === "klient") {
+      let customerId = req.user.customer_id;
+      if (!customerId) {
+        const userRow = await get<{ customer_id: number | null }>(
+          `SELECT customer_id FROM users WHERE id = ?`,
+          [req.user.id]
+        );
+        customerId = userRow?.customer_id ?? undefined;
+      }
+      if (!customerId || row?.customer_id !== customerId) {
+        return res.status(403).json({ success: false, message: "Brak uprawnień" });
+      }
     }
 
     return res.json({ success: true, message: "OK", data: row });
@@ -116,20 +138,44 @@ export async function createVehicle(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
     const role = normalizeRole(req.user.rola);
-    if (role !== "admin" && role !== "kierownik" && role !== "recepcja") {
-      return res.status(403).json({ success: false, message: "Brak uprawnieĹ„" });
+    const isCustomer = role === "user" || role === "klient";
+    if (!isCustomer && role !== "admin" && role !== "kierownik" && role !== "recepcja") {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
     }
 
     const { customer_id, make, model, year, plate, vin, last_service_at } = req.body ?? {};
 
-    if (!customer_id || !make || !model || !plate) {
+    let effectiveCustomerId = isCustomer ? req.user.customer_id : customer_id;
+    if (isCustomer && !effectiveCustomerId) {
+      const userRow = await get<{ id: number; imie: string; nazwisko: string; mail: string; telefon: string | null }>(
+        `SELECT id, imie, nazwisko, mail, telefon FROM users WHERE id = ?`,
+        [req.user.id]
+      );
+
+      if (!userRow) return res.status(400).json({ success: false, message: "Brak danych użytkownika" });
+
+      const customerRes = await run(
+        `INSERT INTO customers (name, email, phone, notes) VALUES (?, ?, ?, ?)`
+        ,
+        [`${userRow.imie ?? ''} ${userRow.nazwisko ?? ''}`.trim(), userRow.mail, userRow.telefon ?? null, null]
+      );
+
+      await run(`UPDATE users SET customer_id = ? WHERE id = ?`, [customerRes.lastID, userRow.id]);
+      effectiveCustomerId = customerRes.lastID;
+    }
+
+    if (!effectiveCustomerId) {
+      return res.status(400).json({ success: false, message: "Brak customer_id" });
+    }
+
+    if (!make || !model || !plate) {
       return res.status(400).json({
         success: false,
-        message: "Brak pĂłl: customer_id, make, model, plate"
+        message: "Brak pól: make, model, plate"
       });
     }
 
-    const cust = await get<{ id: number }>(`SELECT id FROM customers WHERE id = ?`, [Number(customer_id)]);
+    const cust = await get<{ id: number }>(`SELECT id FROM customers WHERE id = ?`, [Number(effectiveCustomerId)]);
     if (!cust) return res.status(400).json({ success: false, message: "Nie istnieje customer_id" });
 
     const existingPlate = await get<{ id: number }>(`SELECT id FROM vehicles WHERE plate = ?`, [String(plate)]);
@@ -139,7 +185,7 @@ export async function createVehicle(req: AuthRequest, res: Response) {
       `INSERT INTO vehicles (customer_id, make, model, year, plate, vin, last_service_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
-        Number(customer_id),
+        Number(effectiveCustomerId),
         String(make),
         String(model),
         year ?? null,

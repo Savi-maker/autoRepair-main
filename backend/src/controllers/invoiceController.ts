@@ -14,7 +14,11 @@ export async function listInvoices(req: AuthRequest, res: Response) {
     if (!canView) return res.status(403).json({ success: false, message: "Brak uprawnień" });
 
     const q = String((req.query.q ?? "") as string).trim();
-    const isCustomer = (role === "user" || role === "klient") && req.user.customer_id;
+    const isCustomer = role === "user" || role === "klient";
+    const customerId = req.user.customer_id;
+    if (isCustomer && !customerId) {
+      return res.json({ success: true, message: "OK", data: [] });
+    }
 
     let baseQuery = `SELECT
       i.id, i.number, i.customer_id, i.order_id, i.issue_date, i.due_date, i.amount, i.status, i.pdf_path, i.created_at,
@@ -29,7 +33,7 @@ export async function listInvoices(req: AuthRequest, res: Response) {
 
     if (isCustomer) {
       whereConditions.push(`i.customer_id = ?`);
-      params.push(req.user.customer_id);
+      params.push(customerId);
     }
 
     if (q) {
@@ -75,6 +79,10 @@ export async function getInvoiceById(req: AuthRequest, res: Response) {
     );
 
     if (!row) return res.status(404).json({ success: false, message: "Invoice not found" });
+
+    if ((role === "user" || role === "klient") && req.user.customer_id && row.customer_id !== req.user.customer_id) {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
 
     return res.json({ success: true, message: "OK", data: row });
   } catch (e: any) {

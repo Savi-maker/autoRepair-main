@@ -41,7 +41,9 @@ function mapUiToBackendStatus(s: UiOrderStatus) {
 
 export default function Zlecenia() {
   const navigate = useNavigate()
-  const { hasPermission, user } = useAuth()
+  const { hasPermission, user, loading: authLoading } = useAuth()
+  const canViewCustomers = hasPermission('canViewCustomers')
+  const canManageOrders = hasPermission('canManageOrders')
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<FilterStatus>('wszystkie')
 
@@ -173,7 +175,14 @@ export default function Zlecenia() {
     setLoading(true)
     setError(null)
 
-    const results = await Promise.allSettled([getOrders(page, 20), getVehicles(), getCustomers(), getMechanics()])
+    const customersPromise = canViewCustomers
+      ? getCustomers()
+      : Promise.resolve({ success: true, message: 'OK', data: [] as CustomerType[] })
+    const mechanicsPromise = canManageOrders
+      ? getMechanics()
+      : Promise.resolve({ success: true, message: 'OK', data: [] as AdminUserType[] })
+
+    const results = await Promise.allSettled([getOrders(page, 20), getVehicles(), customersPromise, mechanicsPromise])
 
     const [oRes, vRes, cRes, uRes] = results
 
@@ -198,8 +207,8 @@ export default function Zlecenia() {
       const failedLoads = []
       if (oRes.status === 'rejected' || (oRes.status === 'fulfilled' && !oRes.value.success)) failedLoads.push('zlecenia')
       if (vRes.status === 'rejected' || (vRes.status === 'fulfilled' && !vRes.value.success)) failedLoads.push('pojazdy')
-      if (cRes.status === 'rejected' || (cRes.status === 'fulfilled' && !cRes.value.success)) failedLoads.push('klienci')
-      if (uRes.status === 'rejected' || (uRes.status === 'fulfilled' && !uRes.value.success)) failedLoads.push('użytkownicy')
+      if (canViewCustomers && (cRes.status === 'rejected' || (cRes.status === 'fulfilled' && !cRes.value.success))) failedLoads.push('klienci')
+      if (canManageOrders && (uRes.status === 'rejected' || (uRes.status === 'fulfilled' && !uRes.value.success))) failedLoads.push('użytkownicy')
       setError(`Błąd pobierania: ${failedLoads.join(', ')}`)
     }
 
@@ -207,6 +216,7 @@ export default function Zlecenia() {
   }
 
   useEffect(() => {
+    if (authLoading) return
     let alive = true
     ;(async () => {
       await reloadAll(orderPage)
@@ -215,7 +225,7 @@ export default function Zlecenia() {
     return () => {
       alive = false
     }
-  }, [orderPage])
+  }, [orderPage, authLoading, canViewCustomers, canManageOrders])
 
   const vehiclesForCustomer = useMemo(() => {
     if (!customerId) return []
@@ -240,9 +250,6 @@ export default function Zlecenia() {
   const data = useMemo(() => {
     const qLower = q.trim().toLowerCase()
     let filtered = (orders || [])
-
-    // Backend already filters by customer_id for klient/user roles
-    // No need to filter again here
 
     return filtered
       .filter((o) => {

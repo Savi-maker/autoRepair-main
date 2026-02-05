@@ -13,6 +13,10 @@ export async function listThreads(req: AuthRequest, res: Response) {
     const customerId = req.user.customer_id;
     const userId = req.user.id;
 
+    if (isCustomer && !customerId) {
+      return res.json({ success: true, message: "OK", data: [] });
+    }
+
 
     let whereClause = "";
     let params: any[] = [];
@@ -86,6 +90,10 @@ export async function getThreadById(req: AuthRequest, res: Response) {
 
     if (!thread) return res.status(404).json({ success: false, message: "Thread not found" });
 
+    if ((req.user.rola === "user" || req.user.rola === "klient") && req.user.customer_id && thread.customer_id !== req.user.customer_id) {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
+
     return res.json({ success: true, message: "OK", data: thread });
   } catch (e: any) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
@@ -99,8 +107,15 @@ export async function createThread(req: AuthRequest, res: Response) {
     const { title, customer_id, order_id } = req.body ?? {};
     if (!title) return res.status(400).json({ success: false, message: "Brak pola: title" });
 
-    if (customer_id != null) {
-      const c = await get(`SELECT id FROM customers WHERE id = ?`, [Number(customer_id)]);
+    const isCustomer = req.user.rola === "user" || req.user.rola === "klient";
+    const effectiveCustomerId = isCustomer ? req.user.customer_id : customer_id;
+
+    if (isCustomer && !effectiveCustomerId) {
+      return res.status(400).json({ success: false, message: "Brak customer_id" });
+    }
+
+    if (effectiveCustomerId != null) {
+      const c = await get(`SELECT id FROM customers WHERE id = ?`, [Number(effectiveCustomerId)]);
       if (!c) return res.status(400).json({ success: false, message: "Nie istnieje customer_id" });
     }
 
@@ -112,7 +127,7 @@ export async function createThread(req: AuthRequest, res: Response) {
     const result = await run(
       `INSERT INTO message_threads (title, customer_id, order_id, created_by_user_id, updated_at)
        VALUES (?, ?, ?, ?, datetime('now'))`,
-      [String(title), customer_id ?? null, order_id ?? null, req.user.id]
+      [String(title), effectiveCustomerId ?? null, order_id ?? null, req.user.id]
     );
 
     const created = await get(`SELECT * FROM message_threads WHERE id = ?`, [result.lastID]);
@@ -133,8 +148,15 @@ export async function updateThread(req: AuthRequest, res: Response) {
     const { title } = req.body ?? {};
     if (title == null) return res.status(400).json({ success: false, message: "Podaj pole: title" });
 
-    const existing = await get<{ id: number }>(`SELECT id FROM message_threads WHERE id = ?`, [id]);
+    const existing = await get<{ id: number; customer_id: number | null }>(
+      `SELECT id, customer_id FROM message_threads WHERE id = ?`,
+      [id]
+    );
     if (!existing) return res.status(404).json({ success: false, message: "Thread not found" });
+
+    if ((req.user.rola === "user" || req.user.rola === "klient") && req.user.customer_id && existing.customer_id !== req.user.customer_id) {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
 
     await run(
       `UPDATE message_threads
@@ -158,8 +180,15 @@ export async function deleteThread(req: AuthRequest, res: Response) {
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "NieprawidĹ‚owe id" });
 
-    const existing = await get<{ id: number }>(`SELECT id FROM message_threads WHERE id = ?`, [id]);
+    const existing = await get<{ id: number; customer_id: number | null }>(
+      `SELECT id, customer_id FROM message_threads WHERE id = ?`,
+      [id]
+    );
     if (!existing) return res.status(404).json({ success: false, message: "Thread not found" });
+
+    if ((req.user.rola === "user" || req.user.rola === "klient") && req.user.customer_id && existing.customer_id !== req.user.customer_id) {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
 
     await run(`DELETE FROM message_threads WHERE id = ?`, [id]);
 
@@ -180,8 +209,15 @@ export async function listMessages(req: AuthRequest, res: Response) {
       return res.status(400).json({ success: false, message: "Nieprawidłowe threadId" });
     }
 
-    const thread = await get<{ id: number }>(`SELECT id FROM message_threads WHERE id = ?`, [threadId]);
+    const thread = await get<{ id: number; customer_id: number | null }>(
+      `SELECT id, customer_id FROM message_threads WHERE id = ?`,
+      [threadId]
+    );
     if (!thread) return res.status(404).json({ success: false, message: "Thread not found" });
+
+    if ((req.user.rola === "user" || req.user.rola === "klient") && req.user.customer_id && thread.customer_id !== req.user.customer_id) {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
 
     const rows = await all(
       `SELECT id, thread_id, sender_user_id, sender_customer_id, text, created_at
@@ -209,8 +245,15 @@ export async function createMessage(req: AuthRequest, res: Response) {
     const { text } = req.body ?? {};
     if (!text) return res.status(400).json({ success: false, message: "Brak pola: text" });
 
-    const thread = await get<{ id: number }>(`SELECT id FROM message_threads WHERE id = ?`, [threadId]);
+    const thread = await get<{ id: number; customer_id: number | null }>(
+      `SELECT id, customer_id FROM message_threads WHERE id = ?`,
+      [threadId]
+    );
     if (!thread) return res.status(404).json({ success: false, message: "Thread not found" });
+
+    if ((req.user.rola === "user" || req.user.rola === "klient") && req.user.customer_id && thread.customer_id !== req.user.customer_id) {
+      return res.status(403).json({ success: false, message: "Brak uprawnień" });
+    }
 
     const result = await run(
       `INSERT INTO messages (thread_id, sender_user_id, sender_customer_id, text)

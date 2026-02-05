@@ -100,12 +100,11 @@ export default function Faktury() {
   const rows = useMemo(() => {
     const ql = q.toLowerCase().trim()
     let filtered = invoices
-    
-    // Filter by customer if user is 'klient' or 'user'
+
     if (user && (user.rola === 'klient' || user.rola === 'user') && user.customer_id) {
       filtered = filtered.filter((inv) => inv.customer_id === user.customer_id)
     }
-    
+
     return filtered
       .map((inv) => {
         const ui = toUiStatus(inv.status)

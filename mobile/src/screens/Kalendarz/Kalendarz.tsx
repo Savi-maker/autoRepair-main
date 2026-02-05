@@ -27,7 +27,10 @@ function toISODate(d: Date) {
 
 export default function Kalendarz() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, hasPermission, loading: authLoading } = useAuth()
+  const role = String(user?.rola ?? '').toLowerCase()
+  const canPickCustomer = hasPermission('canViewCustomers')
+  const canPickMechanic = role === 'admin' || role === 'kierownik' || role === 'recepcja'
   const [selected, setSelected] = useState<string>(toISODate(new Date()))
 
   const [loading, setLoading] = useState(true)
@@ -51,7 +54,6 @@ export default function Kalendarz() {
   const [endAt, setEndAt] = useState('')
   const [notes, setNotes] = useState('')
 
-  // Szczegóły wizyty
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentType | null>(null)
   const [newStatus, setNewStatus] = useState<string>('')
@@ -114,7 +116,6 @@ export default function Kalendarz() {
     setUpdatingStatus(true)
     setUpdateError(null)
     
-    // Utwórz zlecenie z danych wizyty
     const orderResp = await createOrder({
       service: selectedAppointment.title || 'Zlecenie z wizyty',
       opis: selectedAppointment.notes || null,
@@ -131,7 +132,6 @@ export default function Kalendarz() {
       return
     }
     
-    // Zaktualizuj wizytę z order_id
     const updateResp = await updateAppointment(selectedAppointment.id, { 
       order_id: orderResp.data?.id 
     })
@@ -146,7 +146,6 @@ export default function Kalendarz() {
     closeDetails()
     await reloadAll()
     
-    // Przekieruj do zleceń
     navigate('/zlecenia')
   }
 
@@ -154,11 +153,18 @@ export default function Kalendarz() {
     setLoading(true)
     setError(null)
 
+    const customersPromise = canPickCustomer
+      ? getCustomers()
+      : Promise.resolve({ success: true, message: 'OK', data: [] as CustomerType[] })
+    const mechanicsPromise = canPickMechanic
+      ? getMechanics()
+      : Promise.resolve({ success: true, message: 'OK', data: [] as AdminUserType[] })
+
     const results = await Promise.allSettled([
       getAppointments(page, 50),
       getVehicles(),
-      getCustomers(),
-      getMechanics(),
+      customersPromise,
+      mechanicsPromise,
     ])
 
     const [aRes, vRes, cRes, mRes] = results
@@ -184,8 +190,8 @@ export default function Kalendarz() {
       const failedLoads = []
       if (aRes.status === 'rejected' || (aRes.status === 'fulfilled' && !aRes.value.success)) failedLoads.push('wizyty')
       if (vRes.status === 'rejected' || (vRes.status === 'fulfilled' && !vRes.value.success)) failedLoads.push('pojazdy')
-      if (cRes.status === 'rejected' || (cRes.status === 'fulfilled' && !cRes.value.success)) failedLoads.push('klienci')
-      if (mRes.status === 'rejected' || (mRes.status === 'fulfilled' && !mRes.value.success)) failedLoads.push('mechanicy')
+      if (canPickCustomer && (cRes.status === 'rejected' || (cRes.status === 'fulfilled' && !cRes.value.success))) failedLoads.push('klienci')
+      if (canPickMechanic && (mRes.status === 'rejected' || (mRes.status === 'fulfilled' && !mRes.value.success))) failedLoads.push('mechanicy')
       setError(`Błąd pobierania: ${failedLoads.join(', ')}`)
     }
 
@@ -193,6 +199,7 @@ export default function Kalendarz() {
   }
 
   useEffect(() => {
+    if (authLoading) return
     let alive = true
     ;(async () => {
       await reloadAll(appointmentPage)
@@ -201,7 +208,7 @@ export default function Kalendarz() {
     return () => {
       alive = false
     }
-  }, [appointmentPage])
+  }, [appointmentPage, authLoading, canPickCustomer, canPickMechanic])
 
   const days = useMemo(() => {
     const base = new Date()
@@ -596,8 +603,6 @@ export default function Kalendarz() {
           </div>
         </div>
       )}
-
-      {/* Modal szczegółów wizyty */}
       {detailsOpen && selectedAppointment && (
         <div
           style={{
@@ -681,8 +686,6 @@ export default function Kalendarz() {
                   <div style={{ padding: '8px 0', color: '#fff', whiteSpace: 'pre-wrap' }}>{selectedAppointment.notes}</div>
                 </div>
               )}
-
-              {/* Status - zmiana tylko dla recepcji/kierownika/admina */}
               {user && (user.rola === 'recepcja' || user.rola === 'kierownik' || user.rola === 'admin') ? (
                 <div>
                   <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, color: '#ffcc99' }}>Status</label>

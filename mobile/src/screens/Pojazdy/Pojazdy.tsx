@@ -19,7 +19,10 @@ import {
 
 export default function Pojazdy() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, hasPermission, loading: authLoading } = useAuth()
+  const canViewCustomers = hasPermission('canViewCustomers')
+  const role = String(user?.rola ?? '').toLowerCase()
+  const isClientRole = role === 'user' || role === 'klient'
   const [q, setQ] = useState('')
 
   const [loading, setLoading] = useState(true)
@@ -83,7 +86,11 @@ export default function Pojazdy() {
     setLoading(true)
     setError(null)
 
-    const results = await Promise.allSettled([getVehicles(page, 20), getCustomers()])
+    const customersPromise = canViewCustomers
+      ? getCustomers()
+      : Promise.resolve({ success: true, message: 'OK', data: [] as CustomerType[] })
+
+    const results = await Promise.allSettled([getVehicles(page, 20), customersPromise])
 
     const [vRes, cRes] = results
 
@@ -101,7 +108,7 @@ export default function Pojazdy() {
     if (hasError) {
       const failedLoads = []
       if (vRes.status === 'rejected' || (vRes.status === 'fulfilled' && !vRes.value.success)) failedLoads.push('pojazdy')
-      if (cRes.status === 'rejected' || (cRes.status === 'fulfilled' && !cRes.value.success)) failedLoads.push('klienci')
+      if (canViewCustomers && (cRes.status === 'rejected' || (cRes.status === 'fulfilled' && !cRes.value.success))) failedLoads.push('klienci')
       setError(`Błąd pobierania: ${failedLoads.join(', ')}`)
     }
 
@@ -109,6 +116,7 @@ export default function Pojazdy() {
   }
 
   useEffect(() => {
+    if (authLoading) return
     let alive = true
     ;(async () => {
       await reloadAll(vehiclePage)
@@ -117,13 +125,18 @@ export default function Pojazdy() {
     return () => {
       alive = false
     }
-  }, [vehiclePage])
+  }, [vehiclePage, authLoading, canViewCustomers])
+
+  useEffect(() => {
+    if (isClientRole && user?.customer_id) {
+      setCustomerId(user.customer_id)
+    }
+  }, [isClientRole, user?.customer_id])
 
   const data = useMemo(() => {
     const qLower = q.trim().toLowerCase()
     let filtered = vehicles
     
-    // Filter by customer if user is 'klient' or 'user'
     if (user && (user.rola === 'klient' || user.rola === 'user') && user.customer_id) {
       filtered = filtered.filter((v) => v.customer_id === user.customer_id)
     }
@@ -142,7 +155,8 @@ export default function Pojazdy() {
     const mo = model.trim()
     const p = plate.trim()
 
-    if (!customerId) return setAddError('Wybierz klienta')
+    const effectiveCustomerId = isClientRole ? user?.customer_id : customerId
+    if (!isClientRole && !effectiveCustomerId) return setAddError('Wybierz klienta')
     if (!m) return setAddError('Uzupełnij pole: Marka')
     if (!mo) return setAddError('Uzupełnij pole: Model')
     if (!p) return setAddError('Uzupełnij pole: Rejestracja')
@@ -158,14 +172,16 @@ export default function Pojazdy() {
     }
 
     setAddSaving(true)
-    const resp = await createVehicle({
-      customer_id: Number(customerId),
+    const payload = {
       make: m,
       model: mo,
       year: yearNum,
       plate: p,
       vin: vin.trim() ? vin.trim() : undefined,
-    })
+      ...(isClientRole ? {} : { customer_id: Number(effectiveCustomerId) })
+    }
+
+    const resp = await createVehicle(payload)
     setAddSaving(false)
 
     if (!resp.success) {
@@ -265,7 +281,7 @@ export default function Pojazdy() {
 
       <div className="pojazdy-grid">
         {data.map((v) => {
-          const owner = customers.find((c) => c.id === v.customer_id)
+            const owner = customers.find((c) => c.id === v.customer_id)
           return (
             <div key={v.id} className="vehicle-card">
               <div className="vehicle-top">
@@ -373,28 +389,30 @@ export default function Pojazdy() {
             </div>
 
             <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, color: '#ffcc99' }}>Klient</label>
-                <select
-                  value={customerId}
-                  onChange={(e) => setCustomerId(e.target.value ? Number(e.target.value) : '')}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 10,
-                    border: '1px solid rgba(255,102,0,0.18)',
-                    background: '#0f0f0f',
-                    color: '#fff',
-                  }}
-                >
-                  <option value="">Wybierz klienta…</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!isClientRole && (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, color: '#ffcc99' }}>Klient</label>
+                  <select
+                    value={customerId}
+                    onChange={(e) => setCustomerId(e.target.value ? Number(e.target.value) : '')}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: '1px solid rgba(255,102,0,0.18)',
+                      background: '#0f0f0f',
+                      color: '#fff',
+                    }}
+                  >
+                    <option value="">Wybierz klienta…</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, color: '#ffcc99' }}>Marka</label>

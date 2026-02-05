@@ -1,6 +1,3 @@
-// Mapowanie statusów na polskie etykiety
-
-// Statusy wizyt (appointments)
 export type AppointmentStatus = 'oczekujacy' | 'zaakceptowany' | 'wykonano'
 
 export function formatAppointmentStatus(status: string | null | undefined): string {
@@ -15,7 +12,6 @@ export function formatAppointmentStatus(status: string | null | undefined): stri
   return statusMap[status.toLowerCase()] || status
 }
 
-// Statusy zleceń (orders)
 export type OrderStatus = 'nowe' | 'w_trakcie' | 'zakonczone' | 'anulowane'
 
 export function formatOrderStatus(status: string | null | undefined): string {
@@ -31,7 +27,6 @@ export function formatOrderStatus(status: string | null | undefined): string {
   return statusMap[status.toLowerCase()] || status
 }
 
-// Statusy faktur (invoices)
 export type InvoiceStatus = 'wystawiona' | 'oczekuje' | 'zaplacona' | 'anulowana'
 
 export function formatInvoiceStatus(status: string | null | undefined): string {
@@ -47,7 +42,6 @@ export function formatInvoiceStatus(status: string | null | undefined): string {
   return statusMap[status.toLowerCase()] || status
 }
 
-// Kolory dla statusów (dla badge'ów)
 export function getStatusColor(status: string | null | undefined, type: 'appointment' | 'order' | 'invoice'): string {
   if (!status) return '#666'
   

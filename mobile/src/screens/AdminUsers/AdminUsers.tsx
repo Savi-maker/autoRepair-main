@@ -512,6 +512,7 @@ export default function AdminUsers() {
               <div className="a-field" style={{ gridColumn: '1 / -1' }}>
                 <label>Nowa rola</label>
                 <select value={selectedNewRole} onChange={(e) => setSelectedNewRole(e.target.value as UserRole)} disabled={changingRole}>
+                  <option value="klient">Klient</option>
                   <option value="recepcja">Recepcja</option>
                   <option value="mechanik">Mechanik</option>
                   <option value="kierownik">Kierownik</option>

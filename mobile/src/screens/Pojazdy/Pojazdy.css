@@ -98,13 +98,13 @@
   display: flex;
   justify-content: center;
   width: 100%;
-  margin-top: auto; /* push to bottom of .dashboard-main */
-  padding-top: 40px; /* create vertical separation from panels above */
+  margin-top: auto;
+  padding-top: 40px;
   margin-bottom: 36px;
 }
 
 .model-canvas {
-  width: 720px; /* larger preview */
+  width: 720px;
   height: 420px;
   border-radius: 14px;
   overflow: hidden;

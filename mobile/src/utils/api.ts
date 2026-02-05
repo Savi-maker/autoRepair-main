@@ -310,7 +310,7 @@ export function getVehicles(page?: number, limit?: number): Promise<ApiResponse<
 }
 
 export function createVehicle(data: {
-  customer_id: number;
+  customer_id?: number;
   make: string;
   model: string;
   year?: number;

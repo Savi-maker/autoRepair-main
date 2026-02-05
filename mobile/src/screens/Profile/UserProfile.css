@@ -385,8 +385,6 @@
   justify-content: flex-end;
   gap: 10px;
 }
-
-/* Responsywność */
 @media (max-width: 640px) {
   .profile-main {
     padding: 12px;
