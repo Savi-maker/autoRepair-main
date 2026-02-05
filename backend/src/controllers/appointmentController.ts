@@ -175,8 +175,8 @@ export async function updateAppointment(req: AuthRequest, res: Response) {
       return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
     }
 
-    const { title, start_at, end_at, status, notes } = req.body ?? {};
-    if (title == null && start_at == null && end_at == null && status == null && notes == null) {
+    const { title, start_at, end_at, status, notes, order_id } = req.body ?? {};
+    if (title == null && start_at == null && end_at == null && status == null && notes == null && order_id == null) {
       return res.status(400).json({ success: false, message: "Podaj pole do aktualizacji" });
     }
 
@@ -186,6 +186,11 @@ export async function updateAppointment(req: AuthRequest, res: Response) {
         message: "Nieprawidłowy status",
         allowed: Array.from(allowedStatuses)
       });
+    }
+
+    if (order_id != null) {
+      const o = await get(`SELECT id FROM orders WHERE id = ?`, [Number(order_id)]);
+      if (!o) return res.status(400).json({ success: false, message: "Nie istnieje order_id" });
     }
 
     const existing = await get(`SELECT id FROM appointments WHERE id = ?`, [id]);
@@ -213,6 +218,10 @@ export async function updateAppointment(req: AuthRequest, res: Response) {
     if (notes != null) {
       fields.push("notes = ?");
       params.push(notes);
+    }
+    if (order_id != null) {
+      fields.push("order_id = ?");
+      params.push(order_id);
     }
 
     params.push(id);

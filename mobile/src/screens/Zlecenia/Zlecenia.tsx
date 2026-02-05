@@ -13,7 +13,7 @@ import {
   getOrders,
   getVehicles,
   getCustomers,
-  getUsersAdmin,
+  getMechanics,
   createOrder,
   updateOrder,
   type OrderType,
@@ -173,7 +173,7 @@ export default function Zlecenia() {
     setLoading(true)
     setError(null)
 
-    const results = await Promise.allSettled([getOrders(page, 20), getVehicles(), getCustomers(), getUsersAdmin()])
+    const results = await Promise.allSettled([getOrders(page, 20), getVehicles(), getCustomers(), getMechanics()])
 
     const [oRes, vRes, cRes, uRes] = results
 

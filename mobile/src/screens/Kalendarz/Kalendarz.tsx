@@ -10,9 +10,11 @@ import {
   createAppointment,
   updateAppointment,
   createOrder,
+  getMechanics,
   type AppointmentType,
   type VehicleType,
   type CustomerType,
+  type AdminUserType,
 } from '../../utils/api'
 
 function pad(n: number) {
@@ -34,6 +36,7 @@ export default function Kalendarz() {
   const [appointments, setAppointments] = useState<AppointmentType[]>([])
   const [vehicles, setVehicles] = useState<VehicleType[]>([])
   const [customers, setCustomers] = useState<CustomerType[]>([])
+  const [mechanics, setMechanics] = useState<AdminUserType[]>([])
   const [appointmentPagination, setAppointmentPagination] = useState<any>({ page: 1, limit: 50, total: 0, totalPages: 1 })
   const [appointmentPage, setAppointmentPage] = useState(1)
 
@@ -54,6 +57,7 @@ export default function Kalendarz() {
   const [newStatus, setNewStatus] = useState<string>('')
   const [updatingStatus, setUpdatingStatus] = useState(false)
   const [updateError, setUpdateError] = useState<string | null>(null)
+  const [mechanicUserId, setMechanicUserId] = useState<string>('')
 
   const resetForm = () => {
     setTitle('')
@@ -74,6 +78,7 @@ export default function Kalendarz() {
     setSelectedAppointment(appointment)
     setNewStatus(appointment.status || 'oczekujacy')
     setUpdateError(null)
+    setMechanicUserId('')
     setDetailsOpen(true)
   }
 
@@ -82,6 +87,7 @@ export default function Kalendarz() {
     setSelectedAppointment(null)
     setNewStatus('')
     setUpdateError(null)
+    setMechanicUserId('')
   }
 
   const updateStatus = async () => {
@@ -114,6 +120,7 @@ export default function Kalendarz() {
       opis: selectedAppointment.notes || null,
       customer_id: selectedAppointment.customer_id,
       vehicle_id: selectedAppointment.vehicle_id,
+      mechanic_user_id: mechanicUserId.trim() ? Number(mechanicUserId) : null,
       start_at: selectedAppointment.start_at,
       status: 'nowe',
     })
@@ -151,9 +158,10 @@ export default function Kalendarz() {
       getAppointments(page, 50),
       getVehicles(),
       getCustomers(),
+      getMechanics(),
     ])
 
-    const [aRes, vRes, cRes] = results
+    const [aRes, vRes, cRes, mRes] = results
 
     if (aRes.status === 'fulfilled' && aRes.value.success) {
       setAppointments(aRes.value.data || [])
@@ -167,6 +175,9 @@ export default function Kalendarz() {
     if (cRes.status === 'fulfilled' && cRes.value.success) {
       setCustomers(cRes.value.data || [])
     }
+    if (mRes.status === 'fulfilled' && mRes.value.success) {
+      setMechanics(mRes.value.data || [])
+    }
 
     const hasError = results.some(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success))
     if (hasError) {
@@ -174,6 +185,7 @@ export default function Kalendarz() {
       if (aRes.status === 'rejected' || (aRes.status === 'fulfilled' && !aRes.value.success)) failedLoads.push('wizyty')
       if (vRes.status === 'rejected' || (vRes.status === 'fulfilled' && !vRes.value.success)) failedLoads.push('pojazdy')
       if (cRes.status === 'rejected' || (cRes.status === 'fulfilled' && !cRes.value.success)) failedLoads.push('klienci')
+      if (mRes.status === 'rejected' || (mRes.status === 'fulfilled' && !mRes.value.success)) failedLoads.push('mechanicy')
       setError(`Błąd pobierania: ${failedLoads.join(', ')}`)
     }
 
@@ -701,6 +713,34 @@ export default function Kalendarz() {
                     {selectedAppointment.status === 'wykonano' && 'Wykonano'}
                     {!['oczekujacy', 'zaakceptowany', 'wykonano'].includes(selectedAppointment.status || '') && (selectedAppointment.status || '—')}
                   </div>
+                </div>
+              )}
+
+              {user && (user.rola === 'recepcja' || user.rola === 'kierownik' || user.rola === 'admin') && !selectedAppointment.order_id && (
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, color: '#ffcc99' }}>
+                    Mechanik (opcjonalnie)
+                  </label>
+                  <select
+                    value={mechanicUserId}
+                    onChange={(e) => setMechanicUserId(e.target.value)}
+                    disabled={updatingStatus}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: '1px solid rgba(255,102,0,0.18)',
+                      background: '#0f0f0f',
+                      color: '#fff',
+                    }}
+                  >
+                    <option value="">Wybierz mechanika…</option>
+                    {mechanics.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.imie} {m.nazwisko} ({m.mail})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
             </div>

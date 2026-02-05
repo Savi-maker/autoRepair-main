@@ -448,6 +448,10 @@ export function getUsersAdmin(): Promise<ApiResponse<AdminUserType[]>> {
   return apiFetch<AdminUserType[]>("/admin/users", { method: "GET" });
 }
 
+export function getMechanics(): Promise<ApiResponse<AdminUserType[]>> {
+  return apiFetch<AdminUserType[]>("/users/mechanics", { method: "GET" });
+}
+
 export function createUserAdmin(data: {
   imie: string;
   nazwisko: string;
