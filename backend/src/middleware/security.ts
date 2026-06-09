@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
 import helmet from 'helmet'
 import jwt from 'jsonwebtoken'
+import { sendError } from '../utils/errorResponse'
 
 type AuthPayload = {
   id: number;
@@ -86,6 +87,9 @@ export function helmetMiddleware() {
 
 export function sanitizeInput(req: Request, res: Response, next: NextFunction) {
   if (req.body && typeof req.body === 'object') {
+    console.log('PRZED SANITYZACJĄ (Request Body):');
+    console.log(JSON.stringify(req.body, null, 2));
+    
     const sanitize = (obj: any): any => {
       if (typeof obj === 'string') {
         return obj
@@ -108,6 +112,10 @@ export function sanitizeInput(req: Request, res: Response, next: NextFunction) {
       return obj
     }
     req.body = sanitize(req.body)
+    
+    console.log('PO SANITYZACJI (Oczyszczone dane):');
+    console.log(JSON.stringify(req.body, null, 2));
+    console.log('-----------------------------------\n');
   }
   next()
 }
@@ -116,10 +124,7 @@ export function validateContentType(req: Request, res: Response, next: NextFunct
   if (req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'DELETE') {
     const contentType = req.get('content-type')
     if (!contentType || !contentType.includes('application/json')) {
-      return res.status(415).json({
-        success: false,
-        message: 'Content-Type musi być application/json',
-      })
+      return sendError(res, 415, 'Content-Type musi być application/json', { code: 'UNSUPPORTED_CONTENT_TYPE' })
     }
   }
   next()
@@ -129,18 +134,14 @@ export function errorHandler(err: any, req: Request, res: Response, next: NextFu
   console.error('Error:', err)
 
   if (err.status === 429) {
-    return res.status(429).json({
-      success: false,
-      message: err.message || 'Zbyt wiele żądań, spróbuj ponownie później.',
-    })
+    return sendError(res, 429, err.message || 'Zbyt wiele żądań, spróbuj ponownie później.', { code: 'RATE_LIMIT_EXCEEDED' })
   }
 
   const statusCode = err.status || err.statusCode || 500
   const message = err.message || 'Wewnętrzny błąd serwera'
 
-  res.status(statusCode).json({
-    success: false,
-    message,
+  return sendError(res, statusCode, message, {
+    code: statusCode >= 500 ? 'INTERNAL_SERVER_ERROR' : 'REQUEST_ERROR',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   })
 }
