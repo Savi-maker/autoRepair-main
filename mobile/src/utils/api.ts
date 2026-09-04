@@ -85,6 +85,21 @@ export interface InvoiceType {
   created_at: string;
 }
 
+export interface SupplierType {
+  id: number;
+  name: string;
+  contact_person: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  payment_terms: string | null;
+  rating: number;
+  is_active: number;
+  created_at: string;
+}
+
 export interface ThreadType {
   id: number;
   title: string;
@@ -388,6 +403,29 @@ export function updateInvoice(id: number, data: Partial<InvoiceType>): Promise<A
 
 export function deleteInvoice(id: number): Promise<ApiResponse> {
   return apiFetch(`/invoices/${id}`, { method: "DELETE" });
+}
+
+
+
+export function getSuppliers(q?: string): Promise<ApiResponse<SupplierType[]>> {
+  const query = q ? `?q=${encodeURIComponent(q)}` : "";
+  return apiFetch<SupplierType[]>(`/suppliers${query}`, { method: "GET" });
+}
+
+export function getSupplierById(id: number): Promise<ApiResponse<SupplierType>> {
+  return apiFetch<SupplierType>(`/suppliers/${id}`, { method: "GET" });
+}
+
+export function createSupplier(data: Partial<SupplierType>): Promise<ApiResponse<SupplierType>> {
+  return apiFetch<SupplierType>("/suppliers", { method: "POST", body: JSON.stringify(data) });
+}
+
+export function updateSupplier(id: number, data: Partial<SupplierType>): Promise<ApiResponse<SupplierType>> {
+  return apiFetch<SupplierType>(`/suppliers/${id}`, { method: "PATCH", body: JSON.stringify(data) });
+}
+
+export function deleteSupplier(id: number): Promise<ApiResponse> {
+  return apiFetch(`/suppliers/${id}`, { method: "DELETE" });
 }
 
 

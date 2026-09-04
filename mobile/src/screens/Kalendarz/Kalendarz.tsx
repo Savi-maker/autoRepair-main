@@ -112,18 +112,22 @@ export default function Kalendarz() {
 
   const convertToOrder = async () => {
     if (!selectedAppointment) return
+
+    if (selectedAppointment.customer_id == null || selectedAppointment.vehicle_id == null) {
+      setUpdateError('Nie można utworzyć zlecenia: wizyta nie ma przypisanego klienta lub pojazdu')
+      return
+    }
     
     setUpdatingStatus(true)
     setUpdateError(null)
     
     const orderResp = await createOrder({
       service: selectedAppointment.title || 'Zlecenie z wizyty',
-      opis: selectedAppointment.notes || null,
+      opis: selectedAppointment.notes || undefined,
       customer_id: selectedAppointment.customer_id,
       vehicle_id: selectedAppointment.vehicle_id,
       mechanic_user_id: mechanicUserId.trim() ? Number(mechanicUserId) : null,
       start_at: selectedAppointment.start_at,
-      status: 'nowe',
     })
     
     if (!orderResp.success) {

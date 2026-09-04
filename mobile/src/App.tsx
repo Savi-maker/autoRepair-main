@@ -16,6 +16,7 @@ import Magazyn from './screens/Magazyn/Magazyn'
 import Faktury from './screens/Faktury/Faktury'
 import AiHelper from './screens/AiHelper/AiHelper'
 import Messages from './screens/Messages/Messages'
+import Notifications from './screens/Notifications/Notifications'
 import RegisterScreen from './screens/Auth/RegisterScreen'
 import ResetPasswordScreen from './screens/Auth/ResetPasswordScreen'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -56,7 +57,7 @@ function App() {
           <Route path="/list" element={<PlaceholderScreen />} />
           <Route path="/detail" element={<PlaceholderScreen />} />
           <Route path="/item-detail/:id" element={<PlaceholderScreen />} />
-          <Route path="/notifications" element={<PlaceholderScreen />} />
+          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           <Route path="/form" element={<PlaceholderScreen />} />
           <Route path="/payment" element={<PlaceholderScreen />} />
           <Route path="/transaction-details" element={<PlaceholderScreen />} />

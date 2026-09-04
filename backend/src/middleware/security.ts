@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
 import helmet from 'helmet'
 import jwt from 'jsonwebtoken'
-import { sendError } from '../utils/errorResponse'
+import { sendError } from '../utils/errorResponse.js'
 
 type AuthPayload = {
   id: number;
