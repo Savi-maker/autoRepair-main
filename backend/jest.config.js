@@ -6,7 +6,10 @@ export default {
   globals: {
     "ts-jest": {
       useESM: true,
-      tsconfig: "tsconfig.json"
+      tsconfig: "tsconfig.json",
+      diagnostics: {
+        ignoreCodes: [151002]
+      }
     }
   }
 };

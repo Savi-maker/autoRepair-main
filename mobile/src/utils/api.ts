@@ -12,6 +12,28 @@ export interface ProfileType {
   customer_id?: number;
 }
 
+export type EngineEntryKind = 'customer_report' | 'mechanic_diagnosis' | 'repair_summary'
+export interface EnginePartType { key: string; label: string }
+export interface EngineEntryPart { part_key: string; comment: string }
+export interface EngineEntryType {
+  id: number
+  order_id: number
+  kind: EngineEntryKind
+  model_key: 'v8_engine_v1'
+  general_description: string
+  unknown_part: boolean
+  revision: number
+  author_user_id: number | null
+  author_role: string
+  author_name: string
+  created_at: string
+  parts: EngineEntryPart[]
+}
+export interface EngineEntriesType {
+  latest: Record<EngineEntryKind, EngineEntryType | null>
+  history: EngineEntryType[]
+}
+
 export interface OrderType {
   id: number;
   service: string;
@@ -82,6 +104,21 @@ export interface InvoiceType {
   amount: number;
   status: string;
   pdf_path: string | null;
+  created_at: string;
+}
+
+export interface SupplierType {
+  id: number;
+  name: string;
+  contact_person: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  payment_terms: string | null;
+  rating: number;
+  is_active: number;
   created_at: string;
 }
 
@@ -260,13 +297,38 @@ export function getOrderById(id: number): Promise<ApiResponse<OrderType>> {
 export function createOrder(data: {
   service: string;
   opis?: string;
-  customer_id: number;
+  customer_id?: number;
   vehicle_id: number;
   mechanic_user_id?: number | null;
   start_at?: string | null;
   end_at?: string | null;
+  engine_report?: {
+    model_key: 'v8_engine_v1';
+    general_description: string;
+    unknown_part: boolean;
+    parts: EngineEntryPart[];
+  };
 }): Promise<ApiResponse<OrderType>> {
   return apiFetch<OrderType>("/orders", { method: "POST", body: JSON.stringify(data) });
+}
+
+export function getEngineParts(): Promise<ApiResponse<{ model_key: string; parts: EnginePartType[] }>> {
+  return apiFetch('/engine-parts', { method: 'GET' })
+}
+
+export function getOrderEngineEntries(id: number): Promise<ApiResponse<EngineEntriesType>> {
+  return apiFetch<EngineEntriesType>(`/orders/${id}/engine-entries`, { method: 'GET' })
+}
+
+export function createOrderEngineEntry(id: number, data: {
+  kind: EngineEntryKind
+  model_key: 'v8_engine_v1'
+  general_description: string
+  unknown_part: boolean
+  parts: EngineEntryPart[]
+  expected_revision: number
+}): Promise<ApiResponse<EngineEntryType>> {
+  return apiFetch<EngineEntryType>(`/orders/${id}/engine-entries`, { method: 'POST', body: JSON.stringify(data) })
 }
 
 export function updateOrder(id: number, data: { status?: string; opis?: string }): Promise<ApiResponse<OrderType>> {
@@ -388,6 +450,29 @@ export function updateInvoice(id: number, data: Partial<InvoiceType>): Promise<A
 
 export function deleteInvoice(id: number): Promise<ApiResponse> {
   return apiFetch(`/invoices/${id}`, { method: "DELETE" });
+}
+
+
+
+export function getSuppliers(q?: string): Promise<ApiResponse<SupplierType[]>> {
+  const query = q ? `?q=${encodeURIComponent(q)}` : "";
+  return apiFetch<SupplierType[]>(`/suppliers${query}`, { method: "GET" });
+}
+
+export function getSupplierById(id: number): Promise<ApiResponse<SupplierType>> {
+  return apiFetch<SupplierType>(`/suppliers/${id}`, { method: "GET" });
+}
+
+export function createSupplier(data: Partial<SupplierType>): Promise<ApiResponse<SupplierType>> {
+  return apiFetch<SupplierType>("/suppliers", { method: "POST", body: JSON.stringify(data) });
+}
+
+export function updateSupplier(id: number, data: Partial<SupplierType>): Promise<ApiResponse<SupplierType>> {
+  return apiFetch<SupplierType>(`/suppliers/${id}`, { method: "PATCH", body: JSON.stringify(data) });
+}
+
+export function deleteSupplier(id: number): Promise<ApiResponse> {
+  return apiFetch(`/suppliers/${id}`, { method: "DELETE" });
 }
 
 

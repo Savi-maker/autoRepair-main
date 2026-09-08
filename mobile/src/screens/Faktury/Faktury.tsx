@@ -31,7 +31,8 @@ function isoToday() {
 
 export default function Faktury() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, hasPermission } = useAuth()
+  const canManageInvoices = hasPermission('canManageInvoices')
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<FilterStatus>('wszystkie')
 
@@ -249,9 +250,9 @@ export default function Faktury() {
             <option value="oczekuje">Oczekujące</option>
             <option value="przeterminowana">Przeterminowane</option>
           </select>
-          <button className="f-btn-primary" onClick={() => setOpenCreate(true)}>
+          {canManageInvoices && <button className="f-btn-primary" onClick={() => setOpenCreate(true)}>
             ➕ Wystaw fakturę
-          </button>
+          </button>}
         </div>
       </div>
 

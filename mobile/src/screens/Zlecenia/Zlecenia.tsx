@@ -16,6 +16,12 @@ import {
   getMechanics,
   createOrder,
   updateOrder,
+    getEngineParts,
+    getOrderEngineEntries,
+    createOrderEngineEntry,
+    type EnginePartType,
+    type EngineEntriesType,
+    type EngineEntryKind,
   type OrderType,
   type VehicleType,
   type CustomerType,
@@ -44,6 +50,8 @@ export default function Zlecenia() {
   const { hasPermission, user, loading: authLoading } = useAuth()
   const canViewCustomers = hasPermission('canViewCustomers')
   const canManageOrders = hasPermission('canManageOrders')
+    const canCreateOrders = hasPermission('canCreateOrders')
+    const isCustomer = user?.rola === 'klient' || user?.rola === 'user'
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<FilterStatus>('wszystkie')
 
@@ -80,8 +88,15 @@ export default function Zlecenia() {
   const [selectedOrder, setSelectedOrder] = useState<OrderType | null>(null)
   const [editStatus, setEditStatus] = useState<UiOrderStatus>('oczekujące')
   const [editOpis, setEditOpis] = useState('')
-
-
+  const [engineParts, setEngineParts] = useState<EnginePartType[]>([])
+  const [selectedPartKeys, setSelectedPartKeys] = useState<string[]>([])
+  const [unknownPart, setUnknownPart] = useState(false)
+  const [partComments, setPartComments] = useState<Record<string, string>>({})
+  const [engineEntries, setEngineEntries] = useState<EngineEntriesType | null>(null)
+  const [entryKind, setEntryKind] = useState<EngineEntryKind>('customer_report')
+  const [entryDescription, setEntryDescription] = useState('')
+  const [entryDrafts, setEntryDrafts] = useState<Partial<Record<EngineEntryKind, string>>>({})
+  const [entryPartDrafts, setEntryPartDrafts] = useState<Partial<Record<EngineEntryKind, string[]>>>({})
   const ENGINE_PARTS_MAP: Record<string, string> = {
 
     "Head_0": 'Głowica silnika',
@@ -135,17 +150,17 @@ export default function Zlecenia() {
   };
 
   const [enginePartsRaw, setEnginePartsRaw] = useState<string[]>([])
-  const [activeLabel, setActiveLabel] = useState<string | null>(null)
+  const [activeLabels, setActiveLabels] = useState<string[]>([])
   const uniqueLabels = useMemo(() => {
     return Array.from(new Set(Object.values(ENGINE_PARTS_MAP))).sort()
   }, [])
 
-  const getTechnicalParts = (label: string | null): string[] => {
-    if (!label) return []
-    return Object.keys(ENGINE_PARTS_MAP).filter(
-      (key) => ENGINE_PARTS_MAP[key] === label
-    )
+  const getTechnicalParts = (labels: string[]): string[] => {
+    if (labels.length === 0) return []
+    return Object.keys(ENGINE_PARTS_MAP).filter((key) => labels.includes(ENGINE_PARTS_MAP[key]))
   }
+
+  const effectiveCustomerId = customerId || user?.customer_id || ''
 
   const resetForm = () => {
     setService('')
@@ -156,6 +171,9 @@ export default function Zlecenia() {
     setStartAt('')
     setEndAt('')
     setFormError(null)
+    setSelectedPartKeys([])
+    setUnknownPart(false)
+    setPartComments({})
   }
 
   const closeModal = () => {
@@ -169,6 +187,10 @@ export default function Zlecenia() {
     setDetailsError(null)
     setEditOpis('')
     setEditStatus('oczekujące')
+    setEntryDrafts({})
+    setEntryPartDrafts({})
+    setEntryDescription('')
+    setEntryKind('customer_report')
   }
 
   const reloadAll = async (page: number = 1) => {
@@ -182,9 +204,10 @@ export default function Zlecenia() {
       ? getMechanics()
       : Promise.resolve({ success: true, message: 'OK', data: [] as AdminUserType[] })
 
-    const results = await Promise.allSettled([getOrders(page, 20), getVehicles(), customersPromise, mechanicsPromise])
+    const vehiclesPromise = isCustomer ? getVehicles(1, 100) : getVehicles()
+    const results = await Promise.allSettled([getOrders(page, 20), vehiclesPromise, customersPromise, mechanicsPromise, getEngineParts()])
 
-    const [oRes, vRes, cRes, uRes] = results
+    const [oRes, vRes, cRes, uRes, pRes] = results
 
     if (oRes.status === 'fulfilled' && oRes.value.success) {
       setOrders(oRes.value.data || [])
@@ -201,6 +224,7 @@ export default function Zlecenia() {
     if (uRes.status === 'fulfilled' && uRes.value.success) {
       setUsers(uRes.value.data || [])
     }
+    if (pRes.status === 'fulfilled' && pRes.value.success) setEngineParts(pRes.value.data?.parts || [])
 
     const hasError = results.some(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success))
     if (hasError) {
@@ -216,6 +240,10 @@ export default function Zlecenia() {
   }
 
   useEffect(() => {
+    if (isCustomer && user?.customer_id) setCustomerId(user.customer_id)
+  }, [isCustomer, user?.customer_id])
+
+  useEffect(() => {
     if (authLoading) return
     let alive = true
     ;(async () => {
@@ -228,24 +256,24 @@ export default function Zlecenia() {
   }, [orderPage, authLoading, canViewCustomers, canManageOrders])
 
   const vehiclesForCustomer = useMemo(() => {
-    if (!customerId) return []
-    return vehicles.filter((v) => v.customer_id === Number(customerId))
-  }, [vehicles, customerId])
+    if (!effectiveCustomerId) return []
+    return vehicles.filter((v) => v.customer_id === Number(effectiveCustomerId))
+  }, [vehicles, effectiveCustomerId])
 
   const mechanics = useMemo(() => {
     return users.filter((u) => u.rola === 'mechanik')
   }, [users])
 
   useEffect(() => {
-    if (!customerId) {
+    if (!effectiveCustomerId) {
       setVehicleId('')
       return
     }
     if (vehicleId) {
       const v = vehicles.find((x) => x.id === Number(vehicleId))
-      if (!v || v.customer_id !== Number(customerId)) setVehicleId('')
+      if (!v || v.customer_id !== Number(effectiveCustomerId)) setVehicleId('')
     }
-  }, [customerId])
+  }, [effectiveCustomerId, vehicles, vehicleId])
 
   const data = useMemo(() => {
     const qLower = q.trim().toLowerCase()
@@ -275,51 +303,84 @@ export default function Zlecenia() {
 
   const submitCreate = async () => {
     setFormError(null)
-
     const s = service.trim()
+    const reportDescription = opis.trim()
     if (!s) return setFormError('Uzupełnij pole: Usługa')
-    if (!customerId) return setFormError('Wybierz klienta')
+    if (!isCustomer && !customerId) return setFormError('Wybierz klienta')
     if (!vehicleId) return setFormError('Wybierz pojazd')
-
+    if (isCustomer && reportDescription.length < 5) return setFormError('Opisz objawy (minimum 5 znaków)')
     const startIso = startAt ? new Date(startAt).toISOString() : null
     const endIso = endAt ? new Date(endAt).toISOString() : null
-
-    if (startIso && endIso) {
-      const a = new Date(startIso).getTime()
-      const b = new Date(endIso).getTime()
-      if (!Number.isNaN(a) && !Number.isNaN(b) && b < a) {
-        return setFormError('Data zakończenia nie może być wcześniejsza niż rozpoczęcia')
-      }
-    }
-
+    if (startIso && endIso && new Date(endIso).getTime() < new Date(startIso).getTime()) return setFormError('Data zakończenia nie może być wcześniejsza niż rozpoczęcia')
     setSaving(true)
     const resp = await createOrder({
-      service: s,
-      opis: opis.trim() ? opis.trim() : undefined,
-      customer_id: Number(customerId),
+      service: s, opis: reportDescription || undefined,
       vehicle_id: Number(vehicleId),
-      mechanic_user_id: mechanicUserId.trim() ? Number(mechanicUserId) : null,
-      start_at: startIso,
-      end_at: endIso,
+      ...(isCustomer ? { engine_report: { model_key: 'v8_engine_v1', general_description: reportDescription, unknown_part: unknownPart || selectedPartKeys.length === 0, parts: selectedPartKeys.map((part_key) => ({ part_key, comment: partComments[part_key] || '' })) } } : { customer_id: Number(customerId), mechanic_user_id: mechanicUserId.trim() ? Number(mechanicUserId) : null, start_at: startIso, end_at: endIso }),
     })
     setSaving(false)
-
-    if (!resp.success) {
-      setFormError(resp.message || 'Nie udało się utworzyć zlecenia')
-      return
-    }
-
+    if (!resp.success) return setFormError(resp.message || 'Nie udało się utworzyć zlecenia')
     closeModal()
     await reloadAll()
   }
 
-  const openDetails = (o: OrderType) => {
+  const openDetails = async (o: OrderType) => {
     setSelectedOrder(o)
     setEditStatus(mapBackendToUiStatus(String(o.status)))
     setEditOpis(o.opis ?? '')
     setDetailsError(null)
+    setEngineEntries(null)
     setDetailsOpen(true)
+    const response = await getOrderEngineEntries(o.id)
+    if (response.success && response.data) {
+      setEngineEntries(response.data)
+      const current = response.data.latest.customer_report
+      setEntryDescription(current?.general_description || o.opis || '')
+      setEntryDrafts({
+        customer_report: current?.general_description || o.opis || '',
+        mechanic_diagnosis: response.data.latest.mechanic_diagnosis?.general_description || '',
+        repair_summary: response.data.latest.repair_summary?.general_description || '',
+      })
+      setEntryPartDrafts({
+        customer_report: current?.parts.map((part) => part.part_key) || [],
+        mechanic_diagnosis: response.data.latest.mechanic_diagnosis?.parts.map((part) => part.part_key) || [],
+        repair_summary: response.data.latest.repair_summary?.parts.map((part) => part.part_key) || [],
+      })
+      setSelectedPartKeys(current?.parts.map((part) => part.part_key) || [])
+      setUnknownPart(current?.unknown_part || false)
+    }
   }
+
+  const saveEngineEntry = async () => {
+    if (!selectedOrder || !entryDescription.trim()) return
+    const current = engineEntries?.latest[entryKind]
+    setDetailsSaving(true)
+    const response = await createOrderEngineEntry(selectedOrder.id, { kind: entryKind, model_key: 'v8_engine_v1', general_description: entryDescription.trim(), unknown_part: selectedPartKeys.length === 0, parts: selectedPartKeys.map((part_key) => ({ part_key, comment: partComments[part_key] || '' })), expected_revision: current?.revision || 0 })
+    setDetailsSaving(false)
+    if (!response.success) return setDetailsError(response.message)
+    const refreshed = await getOrderEngineEntries(selectedOrder.id)
+    if (refreshed.success && refreshed.data) {
+      setEngineEntries(refreshed.data)
+      setEntryDrafts((drafts) => ({ ...drafts, [entryKind]: entryDescription.trim() }))
+      setEntryPartDrafts((drafts) => ({ ...drafts, [entryKind]: [...selectedPartKeys] }))
+    }
+  }
+
+  const switchEntryKind = (kind: EngineEntryKind) => {
+    setEntryDrafts((drafts) => ({ ...drafts, [entryKind]: entryDescription }))
+    setEntryPartDrafts((drafts) => ({ ...drafts, [entryKind]: [...selectedPartKeys] }))
+    setEntryKind(kind)
+    setEntryDescription(entryDrafts[kind] ?? engineEntries?.latest[kind]?.general_description ?? '')
+    setSelectedPartKeys(entryPartDrafts[kind] ?? engineEntries?.latest[kind]?.parts.map((part) => part.part_key) ?? [])
+  }
+
+  const getTechnicalPartsForKeys = (keys: string[]) => keys.flatMap((key) => {
+    const definition = Object.entries(ENGINE_PARTS_MAP).filter(([, label]) => {
+      const part = engineParts.find((item) => item.key === key)
+      return part?.label === label
+    })
+    return definition.map(([technicalName]) => technicalName)
+  })
 
   const submitDetailsSave = async () => {
     if (!selectedOrder) return
@@ -330,6 +391,11 @@ export default function Zlecenia() {
     const newStatus = mapUiToBackendStatus(editStatus)
     if (newStatus !== selectedOrder.status) payload.status = newStatus
     if ((editOpis ?? '') !== (selectedOrder.opis ?? '')) payload.opis = editOpis
+
+    if (Object.keys(payload).length === 0) {
+      setDetailsSaving(false)
+      return
+    }
 
     const resp = await updateOrder(selectedOrder.id, payload)
     setDetailsSaving(false)
@@ -376,9 +442,9 @@ export default function Zlecenia() {
             <option value="zakończone">Zakończone</option>
             <option value="anulowane">Anulowane</option>
           </select>
-          {hasPermission('canManageOrders') && (
+          {canCreateOrders && (
             <AppButton variant="primary" onClick={() => setOpen(true)}>
-              Dodaj nowe zlecenie
+              {isCustomer ? 'Zgłoś problem' : 'Dodaj nowe zlecenie'}
             </AppButton>
           )}
         </div>
@@ -491,6 +557,7 @@ export default function Zlecenia() {
           }}
         >
           <div
+            className="zlecenia-modal-content"
             style={{
               width: 'min(720px, 100%)',
               background: 'linear-gradient(135deg, #151515 0%, #222 100%)',
@@ -499,6 +566,8 @@ export default function Zlecenia() {
               padding: 18,
               boxShadow: '0 18px 40px rgba(0,0,0,0.55)',
               color: '#fff',
+              maxHeight: 'calc(100vh - 32px)',
+              overflowY: 'auto',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -526,7 +595,7 @@ export default function Zlecenia() {
                 />
               </div>
 
-              <div>
+              {!isCustomer && <div>
                 <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, color: '#ffcc99' }}>Klient</label>
                 <select
                   value={customerId}
@@ -547,25 +616,25 @@ export default function Zlecenia() {
                     </option>
                   ))}
                 </select>
-              </div>
+              </div>}
 
               <div>
                 <label style={{ display: 'block', fontWeight: 700, marginBottom: 6, color: '#ffcc99' }}>Pojazd</label>
                 <select
                   value={vehicleId}
                   onChange={(e) => setVehicleId(e.target.value ? Number(e.target.value) : '')}
-                  disabled={!customerId}
+                  disabled={!effectiveCustomerId}
                   style={{
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: 10,
                     border: '1px solid rgba(255,102,0,0.18)',
-                    background: !customerId ? '#161616' : '#0f0f0f',
+                    background: !effectiveCustomerId ? '#161616' : '#0f0f0f',
                     color: '#fff',
-                    opacity: !customerId ? 0.7 : 1,
+                    opacity: !effectiveCustomerId ? 0.7 : 1,
                   }}
                 >
-                  <option value="">{customerId ? 'Wybierz pojazd…' : 'Najpierw wybierz klienta'}</option>
+                  <option value="">{effectiveCustomerId ? 'Wybierz pojazd…' : 'Nie znaleziono powiązania klienta'}</option>
                   {vehiclesForCustomer.map((v) => (
                     <option key={v.id} value={v.id}>
                       {v.make} {v.model} ({v.year ?? '—'}) • {v.plate}
@@ -657,6 +726,42 @@ export default function Zlecenia() {
                   }}
                 />
               </div>
+
+              {isCustomer && (
+                <fieldset style={{ gridColumn: '1 / -1', border: '1px solid rgba(255,102,0,0.2)', borderRadius: 10, padding: 12 }}>
+                  <legend style={{ color: '#ffcc99', fontWeight: 700 }}>Wskaż obszar na modelu silnika (opcjonalnie)</legend>
+                  <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+                    <input type="checkbox" checked={unknownPart} onChange={(e) => { setUnknownPart(e.target.checked); if (e.target.checked) { setSelectedPartKeys([]); setPartComments({}) } }} />
+                    Nie wiem, którego elementu dotyczy problem
+                  </label>
+                  {!unknownPart && <div className="engine-part-picker">
+                    {engineParts.map((part) => <label key={part.key} className="engine-part-option">
+                      <input type="checkbox" checked={selectedPartKeys.includes(part.key)} onChange={(e) => setSelectedPartKeys((current) => e.target.checked ? [...current, part.key] : current.filter((key) => key !== part.key))} />
+                      {part.label}
+                    </label>)}
+                  </div>}
+                  <small>Model poglądowy silnika V8. Rozmieszczenie i wyposażenie mogą różnić się od Twojego pojazdu.</small>
+                </fieldset>
+              )}
+              {isCustomer && canUseWebGL() && <div className="details-engine-preview report-engine-preview" style={{ gridColumn: '1 / -1' }}>
+                <Canvas shadows camera={{ position: [0, 1.2, 1.8], fov: 38 }}>
+                  <ambientLight intensity={0.25} />
+                  <hemisphereLight args={['#ffffff', '#222', 0.45]} />
+                  <directionalLight position={[5, 12, 8]} intensity={0.8} />
+                  <OrbitControls enablePan enableZoom enableRotate />
+                  <Suspense fallback={<mesh />}>
+                    <Environment preset="studio" background={false} />
+                    <Stage adjustCamera intensity={0.75}>
+                      <V8Engine
+                        position={[0, -0.2, 0]}
+                        rotation={[Math.PI / 2, 0, 0]}
+                        highlightedPart={getTechnicalPartsForKeys(selectedPartKeys)}
+                        highlightColor={0xff6600}
+                      />
+                    </Stage>
+                  </Suspense>
+                </Canvas>
+              </div>}
             </div>
 
             {formError && <div style={{ marginTop: 12, color: '#ffb3b3' }}>⚠️ {formError}</div>}
@@ -673,19 +778,19 @@ export default function Zlecenia() {
         </div>
       )}
 
-      <section className="model-panel">
+      {!detailsOpen && !open && <section className="model-panel">
         <div className="model-sidebar">
           <div style={{ fontWeight: 700, marginBottom: 12, color: '#ff6600', fontSize: 14 }}>Podzespoły silnika</div>
           <div className="parts-list">
             <button
-              className={`part-button ${!activeLabel ? 'active' : ''}`}
-              onClick={() => setActiveLabel(null)}
+              className={`part-button ${activeLabels.length === 0 ? 'active' : ''}`}
+              onClick={() => setActiveLabels([])}
               style={{
                 width: '100%',
                 padding: '8px 10px',
                 marginBottom: 6,
-                background: !activeLabel ? '#ff6600' : 'rgba(255,102,0,0.1)',
-                color: !activeLabel ? '#000' : '#fff',
+                background: activeLabels.length === 0 ? '#ff6600' : 'rgba(255,102,0,0.1)',
+                color: activeLabels.length === 0 ? '#000' : '#fff',
                 border: '1px solid rgba(255,102,0,0.2)',
                 borderRadius: 8,
                 cursor: 'pointer',
@@ -700,14 +805,14 @@ export default function Zlecenia() {
             {uniqueLabels.map((label) => (
               <button
                 key={label}
-                className={`part-button ${activeLabel === label ? 'active' : ''}`}
-                onClick={() => setActiveLabel(prev => prev === label ? null : label)}
+                className={`part-button ${activeLabels.includes(label) ? 'active' : ''}`}
+                onClick={() => setActiveLabels((current) => current.includes(label) ? current.filter((item) => item !== label) : [...current, label])}
                 style={{
                   width: '100%',
                   padding: '8px 10px',
                   marginBottom: 6,
-                  background: activeLabel === label ? '#ff6600' : 'rgba(255,102,0,0.1)',
-                  color: activeLabel === label ? '#000' : '#ddd',
+                  background: activeLabels.includes(label) ? '#ff6600' : 'rgba(255,102,0,0.1)',
+                  color: activeLabels.includes(label) ? '#000' : '#ddd',
                   border: '1px solid rgba(255,102,0,0.2)',
                   borderRadius: 8,
                   cursor: 'pointer',
@@ -740,7 +845,7 @@ export default function Zlecenia() {
                     rotation={[Math.PI / 2, 0, 0]}
                     onPartsLoaded={setEnginePartsRaw}
 
-                    highlightedPart={getTechnicalParts(activeLabel)}
+                    highlightedPart={getTechnicalParts(activeLabels)}
                   />
                 </Stage>
 
@@ -749,7 +854,7 @@ export default function Zlecenia() {
             </Canvas>
           )}
         </div>
-      </section>
+      </section>}
 
       {detailsOpen && selectedOrder && (
         <div
@@ -768,6 +873,7 @@ export default function Zlecenia() {
           }}
         >
           <div
+            className="zlecenia-modal-content"
             style={{
               width: 'min(760px, 100%)',
               background: 'linear-gradient(135deg, #151515 0%, #222 100%)',
@@ -776,6 +882,8 @@ export default function Zlecenia() {
               padding: 18,
               boxShadow: '0 18px 40px rgba(0,0,0,0.55)',
               color: '#fff',
+              maxHeight: 'calc(100vh - 32px)',
+              overflowY: 'auto',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -850,6 +958,50 @@ export default function Zlecenia() {
                   }}
                 />
               </div>
+              <section className="engine-entry-section" style={{ gridColumn: '1 / -1' }}>
+                <h3>Silnik 3D i opis problemu</h3>
+                {canUseWebGL() && <div className="details-engine-preview">
+                  <Canvas shadows camera={{ position: [0, 1.2, 1.8], fov: 38 }}>
+                    <ambientLight intensity={0.25} />
+                    <hemisphereLight args={['#ffffff', '#222', 0.45]} />
+                    <directionalLight position={[5, 12, 8]} intensity={0.8} />
+                    <OrbitControls enablePan enableZoom enableRotate />
+                    <Suspense fallback={<mesh />}>
+                      <Environment preset="studio" background={false} />
+                      <Stage adjustCamera intensity={0.75}>
+                        <V8Engine
+                          position={[0, -0.2, 0]}
+                          rotation={[Math.PI / 2, 0, 0]}
+                          highlightedPart={getTechnicalPartsForKeys(selectedPartKeys)}
+                          highlightColor={entryKind === 'customer_report' ? 0xff6600 : entryKind === 'mechanic_diagnosis' ? 0xc45116 : 0x35c759}
+                        />
+                      </Stage>
+                    </Suspense>
+                  </Canvas>
+                </div>}
+                <p className="engine-note">Model poglądowy silnika V8. Zaznaczone elementy odpowiadają aktywnej zakładce.</p>
+                <div className="engine-tabs" role="tablist">
+                  {([['customer_report', 'Zgłoszenie klienta'], ['mechanic_diagnosis', 'Diagnoza mechanika'], ['repair_summary', 'Wykonane prace']] as const).map(([kind, label]) => (
+                    <button key={kind} type="button" className={entryKind === kind ? 'active' : ''} onClick={() => switchEntryKind(kind)}>{label}</button>
+                  ))}
+                </div>
+                <p className="engine-note">{engineEntries?.latest[entryKind] ? `Wersja ${engineEntries.latest[entryKind]?.revision}, autor: ${engineEntries.latest[entryKind]?.author_name}` : entryKind === 'mechanic_diagnosis' ? 'Warsztat nie dodał jeszcze diagnozy' : entryKind === 'repair_summary' ? 'Brak informacji o wykonanych pracach' : 'Brak zgłoszenia klienta'}</p>
+                <textarea value={entryDescription} readOnly={!isCustomer && entryKind === 'customer_report'} onChange={(e) => setEntryDescription(e.target.value)} rows={4} placeholder="Ta treść będzie widoczna dla klienta" />
+                {!isCustomer && entryKind !== 'customer_report' && <fieldset className="engine-entry-part-editor">
+                  <legend>Elementy objęte diagnozą lub pracami</legend>
+                  <div className="engine-part-picker">
+                    {engineParts.map((part) => <label key={part.key} className="engine-part-option">
+                      <input type="checkbox" checked={selectedPartKeys.includes(part.key)} onChange={(e) => setSelectedPartKeys((current) => e.target.checked ? [...current, part.key] : current.filter((key) => key !== part.key))} />
+                      {part.label}
+                    </label>)}
+                  </div>
+                  <small>Zaznaczone elementy są podświetlane kolorem aktywnej sekcji.</small>
+                </fieldset>}
+                <div className="engine-entry-parts">{(engineEntries?.latest[entryKind]?.parts || []).map((part) => <span key={part.part_key}>{engineParts.find((item) => item.key === part.part_key)?.label || part.part_key}</span>)}</div>
+                <button type="button" className="z-btn-primary" onClick={saveEngineEntry} disabled={detailsSaving || (isCustomer ? entryKind !== 'customer_report' : entryKind === 'customer_report')}>Zapisz nową wersję</button>
+                {engineEntries?.history.filter((entry) => entry.kind === entryKind).length ? <details><summary>Poprzednie wersje</summary>{engineEntries.history.filter((entry) => entry.kind === entryKind).map((entry) => <div key={entry.id} className="engine-history-row">Wersja {entry.revision}: {entry.general_description}</div>)}</details> : null}
+                {!canUseWebGL() && <p className="engine-note">Model 3D jest niedostępny. Możesz wybrać podzespoły z listy.</p>}
+              </section>
             </div>
 
             {detailsError && <div style={{ marginTop: 12, color: '#ffb3b3' }}>⚠️ {detailsError}</div>}

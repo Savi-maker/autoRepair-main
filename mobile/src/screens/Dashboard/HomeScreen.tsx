@@ -100,7 +100,7 @@ const Dashboard: React.FC = () => {
     { path: '/magazyn', label: '📦 Magazyn', permission: 'canViewWarehouse' as any },
     { path: '/faktury', label: '🧾 Faktury', permission: 'canViewInvoices' as any },
     { path: '/wiadomosci', label: '💬 Wiadomości', permission: 'canViewMessages' as any },
-    { path: '/ai', label: '🤖 AI', permission: 'canViewAiHelper' as any },
+    // { path: '/ai', label: '🤖 AI', permission: 'canViewAiHelper' as any },
     { path: '/search', label: '🔍 Szukaj', permission: null as any },
     { path: '/settings', label: '⚙️ Ustawienia', permission: null as any },
     { path: '/admin/uzytkownicy', label: '👑 Admin', permission: 'canViewAdminPanel' as any },
