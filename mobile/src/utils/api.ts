@@ -12,6 +12,28 @@ export interface ProfileType {
   customer_id?: number;
 }
 
+export type EngineEntryKind = 'customer_report' | 'mechanic_diagnosis' | 'repair_summary'
+export interface EnginePartType { key: string; label: string }
+export interface EngineEntryPart { part_key: string; comment: string }
+export interface EngineEntryType {
+  id: number
+  order_id: number
+  kind: EngineEntryKind
+  model_key: 'v8_engine_v1'
+  general_description: string
+  unknown_part: boolean
+  revision: number
+  author_user_id: number | null
+  author_role: string
+  author_name: string
+  created_at: string
+  parts: EngineEntryPart[]
+}
+export interface EngineEntriesType {
+  latest: Record<EngineEntryKind, EngineEntryType | null>
+  history: EngineEntryType[]
+}
+
 export interface OrderType {
   id: number;
   service: string;
@@ -275,13 +297,38 @@ export function getOrderById(id: number): Promise<ApiResponse<OrderType>> {
 export function createOrder(data: {
   service: string;
   opis?: string;
-  customer_id: number;
+  customer_id?: number;
   vehicle_id: number;
   mechanic_user_id?: number | null;
   start_at?: string | null;
   end_at?: string | null;
+  engine_report?: {
+    model_key: 'v8_engine_v1';
+    general_description: string;
+    unknown_part: boolean;
+    parts: EngineEntryPart[];
+  };
 }): Promise<ApiResponse<OrderType>> {
   return apiFetch<OrderType>("/orders", { method: "POST", body: JSON.stringify(data) });
+}
+
+export function getEngineParts(): Promise<ApiResponse<{ model_key: string; parts: EnginePartType[] }>> {
+  return apiFetch('/engine-parts', { method: 'GET' })
+}
+
+export function getOrderEngineEntries(id: number): Promise<ApiResponse<EngineEntriesType>> {
+  return apiFetch<EngineEntriesType>(`/orders/${id}/engine-entries`, { method: 'GET' })
+}
+
+export function createOrderEngineEntry(id: number, data: {
+  kind: EngineEntryKind
+  model_key: 'v8_engine_v1'
+  general_description: string
+  unknown_part: boolean
+  parts: EngineEntryPart[]
+  expected_revision: number
+}): Promise<ApiResponse<EngineEntryType>> {
+  return apiFetch<EngineEntryType>(`/orders/${id}/engine-entries`, { method: 'POST', body: JSON.stringify(data) })
 }
 
 export function updateOrder(id: number, data: { status?: string; opis?: string }): Promise<ApiResponse<OrderType>> {

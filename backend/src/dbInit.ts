@@ -3,7 +3,6 @@ import { run } from "./db.js";
 export async function initDb() {
   await run(`PRAGMA foreign_keys = ON;`);
 
-  await run(`DROP TABLE IF EXISTS part_categories`);
   await run(`
     CREATE TABLE IF NOT EXISTS part_categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,6 +76,34 @@ export async function initDb() {
   `);
 
   await run(`
+    CREATE TABLE IF NOT EXISTS order_engine_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL,
+      kind TEXT NOT NULL CHECK (kind IN ('customer_report', 'mechanic_diagnosis', 'repair_summary')),
+      model_key TEXT NOT NULL,
+      general_description TEXT NOT NULL,
+      unknown_part INTEGER NOT NULL DEFAULT 0 CHECK (unknown_part IN (0, 1)),
+      revision INTEGER NOT NULL,
+      author_user_id INTEGER,
+      author_role TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (order_id, kind, revision),
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+      FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE SET NULL
+    )
+  `);
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS order_engine_entry_parts (
+      entry_id INTEGER NOT NULL,
+      part_key TEXT NOT NULL,
+      comment TEXT NOT NULL DEFAULT '',
+      PRIMARY KEY (entry_id, part_key),
+      FOREIGN KEY (entry_id) REFERENCES order_engine_entries(id) ON DELETE CASCADE
+    )
+  `);
+
+  await run(`
     CREATE TABLE IF NOT EXISTS appointments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
@@ -103,7 +130,6 @@ export async function initDb() {
     )
   `);
 
-  await run(`DROP TABLE IF EXISTS parts`);
   await run(`
     CREATE TABLE IF NOT EXISTS parts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -183,7 +209,6 @@ export async function initDb() {
   await run(`CREATE INDEX IF NOT EXISTS idx_orders_vehicle ON orders(vehicle_id);`);
   await run(`CREATE INDEX IF NOT EXISTS idx_appointments_start ON appointments(start_at);`);
 
-  await run(`DROP TABLE IF EXISTS service_prices`);
   await run(`
     CREATE TABLE IF NOT EXISTS service_prices (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -196,7 +221,6 @@ export async function initDb() {
     )
   `);
 
-  await run(`DROP TABLE IF EXISTS vehicle_history`);
   await run(`
     CREATE TABLE IF NOT EXISTS vehicle_history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -214,7 +238,6 @@ export async function initDb() {
     )
   `);
 
-  await run(`DROP TABLE IF EXISTS employee_schedule`);
   await run(`
     CREATE TABLE IF NOT EXISTS employee_schedule (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -228,7 +251,6 @@ export async function initDb() {
     )
   `);
 
-  await run(`DROP TABLE IF EXISTS suppliers`);
   await run(`
     CREATE TABLE IF NOT EXISTS suppliers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -246,7 +268,6 @@ export async function initDb() {
     )
   `);
 
-  await run(`DROP TABLE IF EXISTS ratings`);
   await run(`
     CREATE TABLE IF NOT EXISTS ratings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -263,7 +284,6 @@ export async function initDb() {
     )
   `);
 
-  await run(`DROP TABLE IF EXISTS email_templates`);
   await run(`
     CREATE TABLE IF NOT EXISTS email_templates (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -276,7 +296,6 @@ export async function initDb() {
     )
   `);
 
-  await run(`DROP TABLE IF EXISTS analytics`);
   await run(`
     CREATE TABLE IF NOT EXISTS analytics (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

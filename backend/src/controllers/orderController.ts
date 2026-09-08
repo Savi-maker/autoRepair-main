@@ -1,6 +1,8 @@
 ﻿import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
 import { all, get, run } from "../db.js";
+import { createEngineEntry } from "../services/orderEngineService.js";
+import { validateEngineEntry } from "../validators/engineEntryValidator.js";
 
 const allowedStatuses = new Set(["nowe", "w_trakcie", "zakonczone", "anulowane"]);
 
@@ -102,7 +104,7 @@ export async function getOrderById(req: AuthRequest, res: Response) {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ success: false, message: "Nieprawidłowe id" });
 
     const row = await get<any>(
       `SELECT
@@ -130,11 +132,10 @@ export async function getOrderById(req: AuthRequest, res: Response) {
 
     const role = getRole(req);
     const isAdmin = canSeeAll(req);
-    const isOwner = row.created_by_user_id === req.user.id;
-    const isCustomer = role === "user" || role === "klient" && req.user.customer_id && row.customer_id === req.user.customer_id;
+    const isCustomer = (role === "user" || role === "klient") && Boolean(req.user.customer_id) && row.customer_id === req.user.customer_id;
     const isMechanic = role === "mechanik" && row.mechanic_user_id === req.user.id;
 
-    if (!isAdmin && !isOwner && !isCustomer && !isMechanic) {
+    if (!isAdmin && !isCustomer && !isMechanic) {
       return res.status(403).json({ success: false, message: "Brak uprawnień" });
     }
 
@@ -148,14 +149,16 @@ export async function createOrder(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: "Brak autoryzacji" });
 
-    const { service, opis, customer_id, vehicle_id, mechanic_user_id, start_at, end_at } = req.body ?? {};
+    const { service, opis, customer_id, vehicle_id, mechanic_user_id, start_at, end_at, engine_report } = req.body ?? {};
 
     const role = getRole(req);
-    if (role !== "admin" && role !== "kierownik" && role !== "recepcja") {
+    const isStaff = role === "admin" || role === "kierownik" || role === "recepcja";
+    const isCustomer = role === "klient" || role === "user";
+    if (!isStaff && !isCustomer) {
       return res.status(403).json({ success: false, message: "Brak uprawnień" });
     }
 
-    if (!service || !customer_id || !vehicle_id) {
+    if (typeof service !== "string" || service.trim().length < 1 || service.trim().length > 150 || !vehicle_id) {
       return res.status(400).json({
         success: false,
         message: "Brak pĂłl: service, customer_id, vehicle_id",
@@ -163,7 +166,10 @@ export async function createOrder(req: AuthRequest, res: Response) {
     }
 
 
-    const customer = await get<{ id: number }>(`SELECT id FROM customers WHERE id = ?`, [Number(customer_id)]);
+    const effectiveCustomerId = isCustomer ? req.user.customer_id : Number(customer_id);
+    if (!effectiveCustomerId || !Number.isInteger(Number(effectiveCustomerId))) return res.status(400).json({ success: false, message: "Brak powiązania konta z klientem" });
+    if (isCustomer && (customer_id != null || mechanic_user_id != null || start_at != null || end_at != null)) return res.status(400).json({ success: false, message: "Niedozwolone pola dla klienta" });
+    const customer = await get<{ id: number }>(`SELECT id FROM customers WHERE id = ?`, [Number(effectiveCustomerId)]);
     if (!customer) return res.status(400).json({ success: false, message: "Nie istnieje customer_id" });
 
     const vehicle = await get<{ id: number; customer_id: number }>(
@@ -171,13 +177,21 @@ export async function createOrder(req: AuthRequest, res: Response) {
       [Number(vehicle_id)]
     );
     if (!vehicle) return res.status(400).json({ success: false, message: "Nie istnieje vehicle_id" });
-    if (vehicle.customer_id !== Number(customer_id)) {
+    if (vehicle.customer_id !== Number(effectiveCustomerId)) {
       return res.status(400).json({ success: false, message: "Pojazd nie należy do podanego klienta" });
     }
 
     if (mechanic_user_id != null) {
       const mech = await get<{ id: number }>(`SELECT id FROM users WHERE id = ?`, [Number(mechanic_user_id)]);
       if (!mech) return res.status(400).json({ success: false, message: "Nie istnieje mechanic_user_id" });
+    }
+
+    let validatedReport;
+    if (isCustomer) {
+      const report = engine_report ?? { model_key: "v8_engine_v1", general_description: opis, unknown_part: true, parts: [] };
+      const validation = validateEngineEntry({ ...report, kind: "customer_report", expected_revision: 0 });
+      if (validation.error || !validation.input || typeof opis !== "string" || opis.trim().length < 5) return res.status(400).json({ success: false, message: validation.error || "Opis objawów jest wymagany" });
+      validatedReport = validation.input;
     }
 
     const result = await run(
@@ -188,7 +202,7 @@ export async function createOrder(req: AuthRequest, res: Response) {
       [
         String(service),
         opis ?? null,
-        Number(customer_id),
+        Number(effectiveCustomerId),
         Number(vehicle_id),
         mechanic_user_id ?? null,
         req.user.id,
@@ -199,6 +213,7 @@ export async function createOrder(req: AuthRequest, res: Response) {
 
     const created = await get<any>(`SELECT * FROM orders WHERE id = ?`, [result.lastID]);
 
+    if (validatedReport) await createEngineEntry(result.lastID, req.user, validatedReport);
     return res.status(201).json({ success: true, message: "Created", data: created });
   } catch (e: any) {
     return res.status(500).json({ success: false, message: e?.message || "DB error" });
@@ -234,14 +249,16 @@ export async function updateOrder(req: AuthRequest, res: Response) {
 
     const role = getRole(req);
     const isAdmin = canEditAll(req);
-    const isOwner = existing.created_by_user_id === req.user.id;
     const isMechanic = role === "mechanik";
 
-    if (!isAdmin && !isOwner && !isMechanic) {
+    if (!isAdmin && !isMechanic) {
       return res.status(403).json({ success: false, message: "Brak uprawnień" });
     }
 
     if (isMechanic) {
+      if (mechanic_user_id != null) {
+        return res.status(403).json({ success: false, message: "Mechanik nie może zmieniać przypisania" });
+      }
       const assigned = await get<{ id: number }>(
         `SELECT id FROM orders WHERE id = ? AND mechanic_user_id = ?`,
         [id, req.user.id]

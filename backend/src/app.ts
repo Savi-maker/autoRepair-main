@@ -29,6 +29,7 @@ import analyticsRoutes from "./routes/analyticsRoutes.js";
 import suppliersRoutes from "./routes/suppliersRoutes.js";
 import scheduleRoutes from "./routes/scheduleRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import enginePartsRoutes from "./routes/enginePartsRoutes.js";
 const app = express();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -55,6 +56,7 @@ app.use("/api/admin", adminUsersRoutes);
 app.use("/api/users", apiLimiter, userRoutes);
 
 app.use("/api/orders", apiLimiter, orderRoutes);
+app.use("/api/engine-parts", apiLimiter, enginePartsRoutes);
 app.use("/api/notifications", apiLimiter, notificationRoutes);
 app.use("/api/customers", apiLimiter, customerRoutes);
 app.use("/api/vehicles", apiLimiter, vehicleRoutes);

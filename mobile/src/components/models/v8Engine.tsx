@@ -12,6 +12,7 @@ type GLTFResult = GLTF & {
 interface V8EngineProps {
   onPartsLoaded?: (parts: string[]) => void
   highlightedPart?: string[] | string | null 
+  highlightColor?: string | number
   [key: string]: any
 }
 
@@ -21,7 +22,7 @@ export function V8Engine(props: V8EngineProps) {
   const sceneRef = useRef<THREE.Group | null>(null)
   const partGroupsMap = useRef<Map<string, THREE.Mesh[]>>(new Map())
   const [initialized, setInitialized] = useState(false)
-  const { onPartsLoaded, highlightedPart, ...groupProps } = props
+  const { onPartsLoaded, highlightedPart, highlightColor = 0xff6600, ...groupProps } = props
 
 
   useEffect(() => {
@@ -73,8 +74,8 @@ export function V8Engine(props: V8EngineProps) {
         if (selectedArray.length > 0) {
           if (isSelected) {
 
-            mat.color.set(0xff6600)
-            mat.emissive.set(0xff6600)
+            mat.color.set(highlightColor)
+            mat.emissive.set(highlightColor)
             mat.emissiveIntensity = 2.5
             mat.opacity = 1.0
             mat.transparent = false
