@@ -77,7 +77,7 @@ function App() {
         <Route path="/home" element={<HomeGate />} />
         <Route path="/client" element={<ClientDashboard />} />
 
-        {/* Twoje ekrany */}
+        {/* Ekrany */}
         <Route path="/UserProfileScreen" element={<UserProfileScreen />} />
         <Route path="/zlecenia" element={<Zlecenia />} />
         <Route path="/pojazdy" element={<Pojazdy />} />

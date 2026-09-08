@@ -59,7 +59,7 @@ export async function createEngineEntry(orderId: number, user: AuthUser, input: 
     await run("COMMIT");
     return getEngineEntry(result.lastID);
   } catch (error) {
-    try { await run("ROLLBACK"); } catch { /* preserve original database error */ }
+    try { await run("ROLLBACK"); } catch { }
     throw error;
   }
 }
